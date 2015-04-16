@@ -37,12 +37,13 @@ Module Type MACHINE_SIG.
   (** We also abstract over the size of memory, by parameterizing the RTLs over the
       number of bits in addresses. *)
   Variable size_addr : nat.  (* number of bits in a memory adress minus one *)
-
+  Variable size_pc : nat.
   (** We assume some type for the machine state *)
   Variable mach_state : Type.
   (** And operations for reading/writing locations *)
   Variable get_location : forall s, location s -> mach_state -> Word.int s.
   Variable set_location : forall s, location s -> Word.int s -> mach_state -> mach_state.
+
 End MACHINE_SIG.
 
 (** Generic register-transfer language *)    
@@ -61,7 +62,21 @@ Module RTL(M : MACHINE_SIG).
     Qed.
     Definition eq := @Word.eq_dec size_addr.
   End AddrIndexed.
+
+  Module CodeIndexed.
+    Definition t := int size_pc.
+    Definition index(i:int size_pc) : positive := ZIndexed.index (Word.unsigned i).
+    Lemma index_inj : forall (x y : int size_pc), index x = index y -> x = y.
+    Proof.
+      unfold index. destruct x; destruct y ; simpl ; intros.
+      generalize intrange intrange0. clear intrange intrange0.
+      rewrite (ZIndexed.index_inj intval intval0 H). intros.
+      rewrite (Coqlib.proof_irrelevance _ intrange intrange0). auto.
+    Qed.
+    Definition eq := @Word.eq_dec size_pc.
+  End CodeIndexed.
   Module AddrMap := IMap(AddrIndexed).
+  Module CodeMap := IMap(CodeIndexed).
 
   (** RTL instructions form a RISC-like core language that operate over pseudo-registers.
       We assume that we're working under an environment that holds an infinite number of
@@ -120,7 +135,8 @@ Module RTL(M : MACHINE_SIG).
     rtl_oracle : oracle ; 
     rtl_env : pseudo_env ; 
     rtl_mach_state : mach_state ; 
-    rtl_memory : AddrMap.t int8
+    rtl_memory : AddrMap.t int8;
+    rtl_code : CodeMap.t int8
   }. 
 
   Inductive RTL_ans(A:Type) : Type := 
@@ -152,21 +168,25 @@ Module RTL(M : MACHINE_SIG).
     fun rs => (Okay_ans tt, {| rtl_oracle := rtl_oracle rs ; 
                            rtl_env := empty_env;
                            rtl_mach_state := rtl_mach_state rs ; 
+                           rtl_code := rtl_code rs ; 
                            rtl_memory := rtl_memory rs |}).
   Definition set_ps s (r:pseudo_reg s) (v:int s) : RTL unit := 
     fun rs => (Okay_ans tt, {| rtl_oracle := rtl_oracle rs ; 
                            rtl_env := update_env r v (rtl_env rs) ;
                            rtl_mach_state := rtl_mach_state rs ; 
+                           rtl_code := rtl_code rs ; 
                            rtl_memory := rtl_memory rs |}).
   Definition set_loc s (l:location s) (v:int s) : RTL unit := 
     fun rs => (Okay_ans tt, {| rtl_oracle := rtl_oracle rs ; 
                            rtl_env := rtl_env rs ; 
                            rtl_mach_state := set_location l v (rtl_mach_state rs) ; 
+                           rtl_code := rtl_code rs ; 
                            rtl_memory := rtl_memory rs |}).
   Definition set_byte (addr:int size_addr) (v:int size8) : RTL unit := 
     fun rs => (Okay_ans tt, {| rtl_oracle := rtl_oracle rs ; 
                            rtl_env := rtl_env rs ; 
                            rtl_mach_state := rtl_mach_state rs ;
+                           rtl_code := rtl_code rs ; 
                            rtl_memory := AddrMap.set addr v (rtl_memory rs) |}).
   Definition get_ps s (r:pseudo_reg s) : RTL (int s) := 
     fun rs => (Okay_ans (rtl_env rs r), rs).
@@ -175,6 +195,9 @@ Module RTL(M : MACHINE_SIG).
   Definition get_byte (addr:int size_addr) : RTL (int size8) := 
     fun rs => (Okay_ans (AddrMap.get addr (rtl_memory rs)), rs).
 
+
+  Definition get_code_byte (addr:int size_pc) : RTL (int size8) := 
+    fun rs => (Okay_ans (CodeMap.get addr (rtl_code rs)), rs).
   Definition choose_bits (s:nat) : RTL (int s) := 
     fun rs => 
       let o := rtl_oracle rs in 
@@ -183,6 +206,7 @@ Module RTL(M : MACHINE_SIG).
           {| rtl_oracle := o' ;
              rtl_env := rtl_env rs ; 
              rtl_mach_state := rtl_mach_state rs ;
+             rtl_code := rtl_code rs ; 
              rtl_memory := rtl_memory rs |}).
   
   Definition interp_arith s (b:bit_vector_op)(v1 v2:int s) : int s := 

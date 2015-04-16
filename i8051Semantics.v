@@ -31,12 +31,8 @@ Module i8051_MACHINE.
   Local Open Scope string_scope.
 
   Definition size_addr := size8.
-  Inductive flag : Set := ID | VIP | VIF | AC | VM | RF | NT | IOPL | OF | DF 
-  | IF_flag | TF | SF | ZF | AF | PF | CF.
+  Definition size_pc := size16.
 
-  Definition flag_eq_dec : forall(f1 f2:flag), {f1=f2}+{f1<>f2}.
-    intros ; decide equality. Defined.
-        
   Inductive regbank : Set :=
     |bank_zero : regbank
     |bank_one :regbank
@@ -57,7 +53,7 @@ Module i8051_MACHINE.
       |bank_three => 24
     end).
   Inductive loc : nat -> Set := 
-  | pc_loc : loc size16.
+  | pc_loc : loc size_pc.
 
   Inductive ploc : nat -> Set :=
   | ram_loc : register -> ploc size8.
@@ -70,7 +66,7 @@ Module i8051_MACHINE.
   Definition look A B (f:fmap A B) (x:A) : B := f x.
 
   Record mach := { 
-    pc_reg : int size16
+    pc_reg : int size_pc
   }.
   Definition mach_state := mach.
 
@@ -254,7 +250,7 @@ Module i8051_Decode.
       (* | ind_a_dptr => *)
       (* | ind_a_pc => *)
     end.
-   Definition conv_ANL (pre: prefix) (op1 op2: operand) : Conv unit :=
+   Definition conv_ANL  (op1 op2: operand) : Conv unit :=
      a <- acc_addr;
      av <- read_byte a;
      match op1 with
@@ -302,12 +298,6 @@ Module i8051_Decode.
   (* Just a filter for some prefix stuff we're not really handling yet.
      In the future this should go away. *)
 
-  Definition check_prefix (p: prefix) := 
-    (match op_override p, addr_override p with
-       | false, false => ret tt
-       | true, false => ret tt
-       | _, _ => emit error_rtl
-     end).
 
   (*
   Definition conv_REP_generic (zfval: option Z) (oldpc_val: Word.int size32) :=
@@ -347,11 +337,10 @@ Module i8051_Decode.
       end.
   *)
 
-  Definition instr_to_rtl (pre: prefix) (i: instr) :=
+  Definition instr_to_rtl (i: instr) :=
     runConv 
-    (check_prefix pre;;
-     match i with
-         | ANL  op1 op2 => conv_ANL pre  op1 op2
+    (match i with
+         | ANL  op1 op2 => conv_ANL  op1 op2
          | _ => emit error_rtl 
     end
     ).
@@ -364,25 +353,6 @@ Import i8051_Decode.
 Import i8051_RTL.
 Import i8051_MACHINE.
 
-Definition in_seg_bounds (s: segment_register) (o1: int32) : RTL bool :=
-  seg_limit <- get_loc (seg_reg_limit_loc s);
-  ret (Word.lequ o1 seg_limit).
-
-Definition in_seg_bounds_rng (s: segment_register) (o1: int32) 
-  (offset: int32) : RTL bool :=
-  seg_limit <- get_loc (seg_reg_limit_loc s);
-  let o2 := Word.add o1 offset in
-  ret (andb (Word.lequ o1 o2)
-            (Word.lequ o2 seg_limit)).
-
-(** fetch n bytes starting from the given location. *)
-Fixpoint fetch_n (n:nat) (loc:int32) (r:rtl_state) : list int8 := 
-  match n with 
-    | 0%nat => nil
-    | S m => 
-      AddrMap.get loc (rtl_memory r) :: 
-        fetch_n m (Word.add loc (Word.repr 1)) r
-  end.
 
 (** Go into a loop trying to parse an instruction.  We iterate at most [n] times,
     and at least once.  This returns the first successful match of the parser
@@ -395,11 +365,11 @@ Fixpoint fetch_n (n:nat) (loc:int32) (r:rtl_state) : list int8 :=
     to support parsing.
 *)
 Fixpoint parse_instr_aux
-  (n:nat) (loc:int32) (len:positive) (ps:Decode.i8051_PARSER.instParserState) : 
-  RTL ((prefix * instr) * positive) := 
+  (n:nat) (loc:int size_pc) (len:positive) (ps:Decode.i8051_PARSER.instParserState) : 
+  RTL (instr * positive) := 
   match n with 
     | 0%nat => Fail _ 
-    | S m => b <- get_byte loc ; 
+    | S m => b <- get_code_byte loc ; 
              match Decode.i8051_PARSER.parse_byte ps b with 
                | (ps', nil) => 
                  parse_instr_aux m (Word.add loc (Word.repr 1)) (len + 1) ps'
@@ -407,22 +377,20 @@ Fixpoint parse_instr_aux
              end
   end.
 
-Definition parse_instr (pc:int32) : RTL ((prefix * instr) * positive) :=
-  seg_start <- get_loc (seg_reg_start_loc CS);
+Definition parse_instr (pc:int size_pc) : RTL ( instr * positive) :=
+
+  pc <- get_loc pc_loc ; 
   (* add the PC to it *)
-  let real_pc := Word.add seg_start pc in
-    parse_instr_aux 15 real_pc 1 Decode.i8051_PARSER.initial_parser_state.
+    parse_instr_aux 15 pc 1 Decode.i8051_PARSER.initial_parser_state.
 
 (** Fetch an instruction at the location given by the program counter.  Return
     the abstract syntax for the instruction, along with a count in bytes for 
     how big the instruction is.  We fail if the bits do not parse, or have more
     than one parse.  We should fail if these locations aren't mapped, but we'll
     deal with that later. *)
-Definition fetch_instruction (pc:int32) : RTL ((prefix * instr) * positive) :=
+Definition fetch_instruction (pc:int size_pc) : RTL ( instr * positive) :=
   [pi, len] <- parse_instr pc;
-  in_bounds_rng <- in_seg_bounds_rng CS pc (Word.repr (Zpos len - 1));
-  if (in_bounds_rng) then ret (pi,len)
-  else SafeFail _.
+  ret (pi,len).
 
 Fixpoint RTL_step_list l :=
   match l with
@@ -430,32 +398,10 @@ Fixpoint RTL_step_list l :=
     | i::l' => interp_rtl i;; RTL_step_list l'
   end.
 
-Definition check_rep_instr (ins:instr) : RTL unit :=
-  match ins with
-    | MOVS _ | STOS _ | CMPS _ => ret tt
-    | _ => Fail _
-  end.
-
 Definition run_rep 
-  (pre:prefix) (ins: instr) (default_new_pc : int32) : RTL unit := 
-  check_rep_instr ins;;
-  ecx <- get_loc (reg_loc ECX);
-  if (Word.eq ecx Word.zero) then set_loc pc_loc default_new_pc
-    else 
-      set_loc (reg_loc ECX) (Word.sub ecx Word.one);;
-      RTL_step_list (i8051_Decode.instr_to_rtl pre ins);;
-      ecx' <- get_loc (reg_loc ECX);
-      (if (Word.eq ecx' Word.zero) then 
-        set_loc pc_loc default_new_pc
-        else ret tt);;
-       (* For CMPS we also need to break from the loop if ZF = 0 *)
-      match ins with
-        | CMPS _ =>
-          zf <- get_loc (flag_loc ZF);
-          if (Word.eq zf Word.zero) then set_loc pc_loc default_new_pc
-          else ret tt
-        | _ => ret tt
-      end.
+   (ins: instr) (default_new_pc : int size_pc) : RTL unit := 
+  RTL_step_list (i8051_Decode.instr_to_rtl ins);;
+ret tt.
 
 Definition step : RTL unit := 
   flush_env;;
@@ -464,19 +410,9 @@ Definition step : RTL unit :=
      different from the range checks in fetch_instruction; 
      this check makes sure the machine safely fails when pc is 
      out of bounds so that there is no need to fetch an instruction *)
-  pc_in_bounds <- in_seg_bounds CS pc;
-  if (pc_in_bounds) then 
-    [pi,length] <- fetch_instruction pc ; 
-    let (pre, instr) := pi in
+    [instr,length] <- fetch_instruction pc ; 
     let default_new_pc := Word.add pc (Word.repr (Zpos length)) in
-      match lock_rep pre with
-        | Some rep (* We'll only allow rep, not lock or repn *) =>
-          run_rep pre instr default_new_pc
-        | None => set_loc pc_loc default_new_pc;; 
-                  RTL_step_list (i8051_Decode.instr_to_rtl pre instr)
-        | _ => Fail _ 
-      end
-  else SafeFail _.
+          run_rep  instr default_new_pc.
 
 Definition step_immed (m1 m2: rtl_state) : Prop := step m1 = (Okay_ans tt, m2).
 Notation "m1 ==> m2" := (step_immed m1 m2) (at level 55, m2 at next level).
