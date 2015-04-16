@@ -165,35 +165,8 @@ Module i8051_Decode.
   (* Copy the contents of rs to a new pseudo register *)
   Definition copy_ps s (rs:pseudo_reg s) := fresh (@cast_u_rtl s s rs).
 
-  Definition scale_to_int32(s:scale) : int32 :=
-    Word.repr match s with | Scale1 => 1 | Scale2 => 2 | Scale4 => 4 | Scale8 => 8 end.
-
-
-  Definition scale_to_int8(s:scale) : int8 :=
-    Word.repr match s with | Scale1 => 1 | Scale2 => 2 | Scale4 => 4 | Scale8 => 8 end.
 
   (* compute an effective address *)
-  Definition compute_addr(a:address) : Conv (pseudo_reg size_addr) := 
-    let disp := addrDisp a in 
-      match addrBase a, addrIndex a with 
-        | None, None => load_int disp 
-        | Some r, None => 
-          p1 <- load_reg r ; p2 <- load_int disp ; arith add_op p1 p2
-        | Some r1, Some (s, r2) =>
-          b <- load_reg r1;
-          i <- load_reg r2;
-          s <- load_int (scale_to_int8 s);
-          p0 <- arith mul_op i s;
-          p1 <- arith add_op b p0;
-          disp <- load_int disp;
-          arith add_op p1 disp
-        | None, Some (s, r) => 
-          i <- load_reg r;
-          s <- load_int (scale_to_int8 s);
-          disp <- load_int disp;
-          p0 <- arith mul_op i s;
-          arith add_op disp p0
-      end.
 
 
 
@@ -250,6 +223,64 @@ Module i8051_Decode.
       (* | ind_a_dptr => *)
       (* | ind_a_pc => *)
     end.
+
+  Local Open Scope Z_scope.
+  Definition valid_bit_addr := map (@Word.repr size8) (flat_map
+                                (fun x => x+8::x+7::x+6::x+5::x+4::x+3::x+2::x+1::x::nil)
+                                   (hF0::hE0::hD0::hC8::hB8::hB0::
+    hA8::hA0::h98::h90::h88::h80::nil)).
+  Local Close Scope Z_scope.
+  Definition is_valid_bit_addr baddr :=
+    let prop := (fun s => Word.eq s baddr ) in
+    match find  prop valid_bit_addr with
+      | Some _ => true
+      | Nothing => false
+      end.
+  Definition conv_SETB (op1:operand) : Conv unit :=
+    match op1 with
+        | Bit_op (bit_addr baddr) =>
+          if is_valid_bit_addr baddr then
+            let addr := Word.and baddr (Word.repr  3) in
+            let bsel := Word.and baddr (Word.not (Word.repr 3)) in
+            let ormask := Word.shl (Word.repr 1) bsel in
+            ormaskReg <- load_int ormask;
+            a <- load_int addr;
+            av <- read_byte a;
+            av' <- arith or_op av ormaskReg;
+            write_byte av' a
+            else
+              emit error_rtl
+        | _ => emit error_rtl
+    end.
+
+  Definition conv_CLR (op1:operand) : Conv unit :=
+    match op1 with
+        | Bit_op (bit_addr baddr) =>
+          if is_valid_bit_addr baddr then
+            let addr := Word.and baddr (Word.repr  3) in
+            let bsel := Word.and baddr (Word.not (Word.repr 3)) in
+            let andmask := Word.not (Word.shl (Word.repr 1) bsel) in
+            andmaskReg <- load_int andmask;
+            a <- load_int addr;
+            av <- read_byte a;
+            av' <- arith and_op av andmaskReg;
+            write_byte av' a
+            else
+              emit error_rtl
+        | Acc_op =>
+          
+          a <- acc_addr;
+          b <- load_Z size8 0;
+          write_byte b a
+          
+        | _ => emit error_rtl
+    end.
+
+  Definition conv_NOP : Conv unit := (** TODO: Better way to NOP? **)
+    a <- acc_addr;
+    av <- read_byte a;
+    write_byte av a.
+            
    Definition conv_ANL  (op1 op2: operand) : Conv unit :=
      a <- acc_addr;
      av <- read_byte a;

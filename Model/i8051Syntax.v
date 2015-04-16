@@ -58,49 +58,28 @@ Word.repr  match r with
  | R7 =>  7
  end.
 
-      
-
-Inductive scale : Set := Scale1 | Scale2 | Scale4 | Scale8.
-Definition scale_eq_dec : forall (x y:scale), {x=y} + {x<>y}.
-  intros ; decide equality.
-Defined.
-
-Definition Z_to_scale n := match n with 
-                            | 0 => Scale1
-                            | 1 => Scale2
-                            | 2 => Scale4
-                            | _ => Scale8
-                          end.
-
-Inductive segment_register : Set := ES | CS | SS | DS | FS | GS.
-Definition segment_register_eq_dec : 
-  forall (x y:segment_register), {x=y} + {x<>y}.
-  intros ; decide equality.
-Defined.
-
-Inductive control_register : Set := CR0 | CR2 | CR3 | CR4.
-Definition control_register_eq_dec : 
-  forall (x y:control_register), {x=y} + {x<>y}.
-  intros ; decide equality.
-Defined.
-
-Inductive debug_register   : Set := DR0 | DR1 | DR2 | DR3 | DR6 | DR7.
-Definition debug_register_eq_dec : 
-  forall (x y:debug_register), {x=y} + {x<>y}.
-  intros ; decide equality.
-Defined.
 
 Record address : Set := mkAddress {
   addrDisp : int8 ; 
   addrBase : option register ; 
-  addrIndex : option (scale * register)
+  addrIndex : option (register)
 }.
 Inductive indirect : Set :=
  | ind_reg : register -> indirect.
  (* | ind_dptr : indirect *)
  (* | ind_a_dptr : indirect *)
  (* | ind_a_pc : indirect.                         *)
-                       
+Inductive bitAddr : Set :=
+  | bit_addr : forall (i : int8), bitAddr.
+Module Alias.
+  Definition C := bit_addr (Word.repr (hD0+7)).
+  Definition AC := bit_addr (Word.repr (hD0+6)).
+  Definition F0 := bit_addr (Word.repr (hD0+5)).
+  Definition RS1 := bit_addr (Word.repr (hD0+4)).
+  Definition RS0 := bit_addr (Word.repr (hD0+3)).
+  Definition OV := bit_addr (Word.repr (hD0+2)).
+  Definition P := bit_addr (Word.repr (hD0)).
+End Alias.
 Inductive operand : Set := 
 | Imm_op : int8 -> operand
 | Reg_op : register -> operand
@@ -108,7 +87,8 @@ Inductive operand : Set :=
 | Offset_op : int8 -> operand
 | Acc_op : operand
 | Direct_op : int8 -> operand
-| Indirect_op : indirect -> operand.
+| Indirect_op : indirect -> operand
+| Bit_op : bitAddr -> operand.
 
 Inductive reg_or_immed : Set := 
 | Reg_ri : register -> reg_or_immed
@@ -161,13 +141,15 @@ Inductive instr : Set :=
 (* two parts:  1-byte opcode instructions, followed by 2-byte in alphabetical order,
    following Table B-13 and Table ??? *) 
 | ANL   : forall (op1 op2:operand), instr
-| ADD   : forall (op1 op2:operand), instr.
+| ADD   : forall (op1 op2:operand), instr
+| SETB  : forall (op1:operand), instr
+| CLR   : forall (op1:operand), instr
+| NOP   : instr.
 
 Inductive lock_or_rep : Set := lock | rep | repn.
 
 Record prefix : Set := mkPrefix {
    lock_rep : option lock_or_rep;
-   seg_override : option segment_register;
    op_override : bool;
    addr_override : bool
 }.

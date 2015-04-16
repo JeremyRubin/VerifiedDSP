@@ -131,6 +131,8 @@ Module i8051_PARSER.
   Definition reg := (field 3) @ ((fun r => Reg_op (Z_to_register r)) : _ -> result_m operand_t).
   Definition direct := (field 8) @ ((fun r => Direct_op (@Word.repr 7 r)) : _ -> result_m operand_t).
   Definition immediate := (field 8) @ ((fun r => Imm_op (@Word.repr 7 r)) : _ -> result_m operand_t).
+
+  Definition bit_address := (field 8) @ ((fun r => Bit_op (bit_addr (@Word.repr 7 r))) : _ -> result_m operand_t).
   Definition byte := (field 8) @ (@Word.repr 7 : _ -> result_m byte_t).
  (* Definition halfword := (field 16) @ (@Word.repr 15 : _ -> result_m half_t).
   Definition word := (field 32) @ (@Word.repr 31 : _ -> result_m word_t). *)
@@ -178,6 +180,13 @@ Module i8051_PARSER.
   Definition ANL_p := arith_p_with_direct ANL "0101".
   Definition ADD_p := arith_p ADD "0010".
 
+  Definition bitwise_p op := "1101" $$ (
+                             bits "0011" @ (fun _ => op (Bit_op Alias.C) %% instruction_t)
+                                    |+| "0010"  $$ bit_address @ (fun i => CLR i %% instruction_t)).
+  Definition SETB_p := bitwise_p SETB.
+  Definition CLR_p := bits "11100100" @ (fun _ => CLR Acc_op %% instruction_t)
+                           |+| bitwise_p CLR.
+  Definition NOP_p := bits "00000000" @ (fun _ =>  NOP %% instruction_t).
   (* Now glue all of the individual instruction parsers together into 
      one big parser. *)
   Definition instrs : list (parser instruction_t) :=

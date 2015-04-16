@@ -3781,6 +3781,7 @@ Implicit Arguments neg [wordsize_minus_one].
 End Word.
 
 Definition int1 := Word.int 0.
+Definition int3 := Word.int 2.
 Definition int4 := Word.int 3.
 Definition int8 := Word.int 7.  
 Definition int16 := Word.int 15.
