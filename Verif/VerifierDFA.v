@@ -74,7 +74,10 @@ Definition non_cflow_instr i :=
 
 Definition non_cflow_parser := alts non_cflow_instrs.
 
-(* Direct jumps. Destinations will be checked to see if 
+Definition non_cflow_parser_list :=
+  (List.map (fun (p:parser instruction_t) =>  p)
+            non_cflow_instrs).
+    (* Direct jumps. Destinations will be checked to see if 
    they are known, valid starts of instructions. *)
 
 (* We only want to allow "near" jumps to direct, relative offsets *)

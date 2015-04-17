@@ -210,17 +210,45 @@ Definition byte2token (b: int8) : token_id := Zabs_nat (Word.unsigned b).
 
  (*   Eval compute in alts (SETB_p::CLR_p::NOP_p::ANL_p::ADD_p::nil). *)
 Lemma non_cflow_instr_inv (ins:instr) (s:list char_p) :
-  in_parser VerifierDFA.` s (ins) -> 
+  in_parser ( alts   (SETB_p::nil)) s (ins) -> 
   non_cflow_instr ins = true.
 Proof.
-Lemma non_cflow_instr_inv (ins:instr) (s:list char_p) :
+  intros.
+  destruct non_cflow_instr.
+  auto.
+  admit.
+Qed.
+
+  
+Lemma non_cflow_instr_inv' (ins:instr) (s:list char_p) :
   in_parser VerifierDFA.non_cflow_parser s (ins) -> 
   non_cflow_instr ins = true.
+
 Proof.
-unfold VerifierDFA.non_cflow_parser.
-unfold VerifierDFA.non_cflow_instrs.
-intros.  
+
+  unfold VerifierDFA.non_cflow_parser, VerifierDFA.non_cflow_parser_list,
+  VerifierDFA.non_cflow_instrs.
+  
+  unfold alts.
+  unfold alt.
+  unfold fold_right.
+  intros.
+  generalize dependent ins.
+  intros.
   destruct ins; auto.
+intros.  
+intros.
+
+  simpl in H.
+  Unset Printing Notations.
+  
+  unfold alt in H.
+  remember (LJMP op1).
+  exfalso.
+  generalize dependent Heqi.
+  destruct H.
+  inversion H.
+  
  
   unfold alts in H.
   unfold alt in H.
