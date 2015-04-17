@@ -11,6 +11,7 @@
 
 (** Properties about the DFAs that we build for the FastVerifier.
 *)
+Add LoadPath "../Model".
 Require Import Coqlib.
 Require Import Parser.
 Require Import Ascii.
@@ -112,9 +113,11 @@ Lemma in_alts_app : forall t (ps qs:list (parser t)) s v,
   in_parser (alts (ps ++ qs)) s v.
 Proof.
   induction ps ; simpl ; intros ; unfold never in * ; repeat pinv ; auto.
-  econstructor. auto. eapply Alt_right_pi. eauto. 
+  Qed.
+(*  econstructor. auto. eapply Alt_right_pi. eauto. 
+
   eapply Alt_right_pi. eauto.
-Qed.
+Qed. *)
 
 Lemma app_cons_nil A (x:A) (ys:list A) (y:A) (zs:list A) : 
   x::nil = ys ++ y :: zs -> ys = nil.
@@ -133,6 +136,13 @@ Proof.
   specialize (IHps1 _ _ _ H). pinv. left. eapply Alt_right_pi. auto. right. auto.
 Qed.
 
+Lemma in_app_alts' : forall t (ps:list (parser t)) s v,
+  in_parser (alts (ps)) s v -> 
+  in_parser (alts ps) s v.
+Proof.
+  induction ps ; simpl ; intros. auto. repeat pinv. econstructor ; eauto.
+  specialize (IHps _ _ H). eapply Alt_right_pi. auto. 
+Qed.
 Lemma in_alts_map : forall t1 t2 (p1:parser t1) (ps:list (parser t2)) s v,
   in_parser (alts (List.map (fun p2 => Cat_p p1 p2) ps)) s v -> 
   in_parser (Cat_p p1 (alts ps)) s v.
@@ -153,31 +163,6 @@ Proof.
   exists x1. split ; auto. 
 Qed.
 
-Lemma inv_modrm : forall s p,
-  in_parser modrm s p -> 
-  match p with | (_, Imm_op _) => False | (Reg_op r, op) => True | _ => False end.
-Proof.
-  unfold modrm. intros. repeat pinv ; auto. unfold rm00 in *. repeat pinv ; auto.
-  unfold rm01 in *. repeat pinv ; auto. destruct x9 ; auto. unfold rm10 in * ; 
-  repeat pinv ; auto. destruct x9 ; auto. unfold rm11 in * ; repeat pinv ; auto.
-Qed.
-
-Lemma inv_ext_modrm : forall bs s v,
-  in_parser (ext_op_modrm bs) s v -> match v with | Imm_op _ => False | _ => True end.
-Proof.
-  unfold ext_op_modrm. intros. repeat pinv. unfold rm00 in *. repeat pinv ; auto.
-  unfold rm01 in *. repeat pinv ; auto. destruct x9. auto. 
-  unfold rm10 in *. repeat pinv ; auto. destruct x9. auto.
-Qed.
-
-Lemma inv_ext_modrm2 : forall bs s v,
-  in_parser (ext_op_modrm2 bs) s v -> match v with | Imm_op _ => False | _ => True end.
-Proof.
-  unfold ext_op_modrm2. intros. repeat pinv. unfold rm00 in *. repeat pinv ; auto.
-  unfold rm01 in *. repeat pinv ; auto. destruct x9 ; auto.
-  unfold rm10 in *. repeat pinv ; auto. destruct x9 ; auto.
-  unfold rm11 in *. repeat pinv ; auto.
-Qed.
 
 (** A tactic for applying these inversion properties on parsers to simplify
     them down to the cases we want to consider. *)
@@ -188,18 +173,13 @@ Ltac psimp :=
     | [ H : (_,_) = (_,_) |- _ ] => injection H ; clear H ; intros ; subst
     | [ H : in_parser (_ $$ _) _ _ |- _ ] => 
       generalize (inv_bitsleft H) ; clear H ; t ; subst
-    | [ H : in_parser modrm _ _ |- _ ] => generalize (inv_modrm H) ; clear H ; t
-    | [ H : in_parser (ext_op_modrm ?bs) _ _ |- _ ] => 
-      generalize (@inv_ext_modrm bs _ _ H) ; clear H ; t
-    | [ H : in_parser (ext_op_modrm2 ?bs) _ _ |- _ ] => 
-      generalize (@inv_ext_modrm2 bs _ _ H) ; clear H ; t
   end.
 
 (** Main connecton between non_cflow_dfa and semantics -- this is hopefully
     close enough to the actual parser used in the semantics that proving
     a relationship is easy to do.  We will see... *)
 Fixpoint simple_parse' (ps:i8051_PARSER.instParserState) (bytes:list int8) : 
-  option ((prefix * instr) * list int8) := 
+  option (instr * list int8) := 
   match bytes with 
     | nil => None
     | b::bs => match i8051_PARSER.parse_byte ps b with 
@@ -208,65 +188,57 @@ Fixpoint simple_parse' (ps:i8051_PARSER.instParserState) (bytes:list int8) :
                end
   end.
 
-Definition simple_parse (bytes:list int8) : option ((prefix * instr) * list int8) := 
+Definition simple_parse (bytes:list int8) : option ( instr * list int8) := 
   simple_parse' i8051_PARSER.initial_parser_state bytes.
 
 Definition byte2token (b: int8) : token_id := Zabs_nat (Word.unsigned b).
 
 (** The [valid_prefix_parser_nooveride] parser only builds a [prefix] that satisfies
    [only_gs_seg_override]. *)
-Lemma pfx_nooverride : forall s v, 
-  in_parser valid_prefix_parser_nooverride s v -> only_gs_seg_override v = true.
-Proof.
-  unfold only_gs_seg_override, valid_prefix_parser_nooverride. intros. repeat pinv ;
-  simpl ; auto. 
-Qed.
 
 (** The [only_op_override] satisfies [either_prefix]. *)
-Lemma pfx_nooverride_imp_either : forall pfx,
-  only_op_override pfx = true -> either_prefix pfx = true.
-Proof.
-  destruct pfx ; unfold only_op_override, either_prefix ; simpl ; intros ; 
-  unfold only_op_override, only_gs_seg_override ; simpl. 
-  destruct lock_rep ; try congruence. destruct seg_override ; try congruence.
-  rewrite H. auto.
-Qed.
 
 (** [only_gs_segoverride] implies [either_prefix] *)
-Lemma pfx_gs_seg_imp_either : forall pfx,
-  only_gs_seg_override pfx = true -> either_prefix pfx = true.
-Proof.
-  destruct pfx ; unfold only_gs_seg_override, either_prefix ; simpl ; intros ; 
-  unfold only_op_override, only_gs_seg_override ; simpl. 
-  destruct lock_rep ; try congruence. destruct seg_override ; try congruence.
-  rewrite H. auto. rewrite H. destruct addr_override ; auto.
-Qed.
 
 (** The [valid_prefix_parser_rep] only builds a [prefix] that satisfies
     [only_lock_or_rep]. *)
-Lemma pfx_rep : forall s v,
-  in_parser valid_prefix_parser_rep s v -> only_lock_or_rep v = true.
-Proof.
-  unfold valid_prefix_parser_rep, only_lock_or_rep ; intros ; repeat pinv ; auto.
-Qed.
 
 (** This lemma shows that any instruction returned by the [non_cflow_parser]
     satisfies the boolean predicate [non_cflow_instr].  We should probably
     break this up into a lot of little lemmas to make it a little easier
     to adapt. *)
-Lemma non_cflow_instr_inv (pre:prefix) (ins:instr) (s:list char_p) :
-  in_parser VerifierDFA.non_cflow_parser s (pre,ins) -> 
-  non_cflow_instr pre ins = true.
+
+ (*   Eval compute in alts (SETB_p::CLR_p::NOP_p::ANL_p::ADD_p::nil). *)
+Lemma non_cflow_instr_inv (ins:instr) (s:list char_p) :
+  in_parser VerifierDFA.` s (ins) -> 
+  non_cflow_instr ins = true.
 Proof.
-  unfold VerifierDFA.non_cflow_parser, VerifierDFA.non_cflow_parser_list, 
-    VerifierDFA.non_cflow_instrs_rep_pre.
-  intros. generalize (in_app_alts _ _ H). clear H. intros.
-  destruct H ;
-    [idtac | generalize (in_app_alts _ _ H) ; clear H ; intro H ; destruct H] ;
+Lemma non_cflow_instr_inv (ins:instr) (s:list char_p) :
+  in_parser VerifierDFA.non_cflow_parser s (ins) -> 
+  non_cflow_instr ins = true.
+Proof.
+unfold VerifierDFA.non_cflow_parser.
+unfold VerifierDFA.non_cflow_instrs.
+intros.  
+  destruct ins; auto.
+ 
+  unfold alts in H.
+  unfold alt in H.
+  unfold fold_right in H.
+
+  unfold non_cflow_instr.
+  destruct s in H.
+
+  destruct H.
+  subst.
+
+
+  
+    [idtac. | generalize (in_app_alts _ _ H) ; clear H ; intro H ; destruct H] ;
   generalize (in_alts_map _ _ H) ; clear H ; intros ; pinv ;
     injection H0 ; intros ; clear H0 ; subst.
   generalize (pfx_nooverride H1). clear H1. intros.
-  generalize (pfx_gs_seg_imp_either _ H). intros.
+   intros.
 
   unfold non_cflow_instrs_nosize_pre in *. simpl in *. repeat pinv.
   (* simple instructions *)

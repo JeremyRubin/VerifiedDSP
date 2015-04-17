@@ -64,8 +64,11 @@ Implicit Arguments make_dfa [t].
 Definition non_cflow_instrs : list (parser instruction_t) := 
     SETB_p::CLR_p::NOP_p::ANL_p::ADD_p::nil.
 
-
-
+Definition non_cflow_instr i :=
+  match i with
+      | SETB _ | CLR _ | NOP  | ANL _ _ | ADD _ _ => true
+      | _ => false
+  end.
 (** The list of valid prefix and instruction parsers for non-control-flow
     operations. *)
 
