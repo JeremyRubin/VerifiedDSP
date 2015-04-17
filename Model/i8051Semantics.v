@@ -280,6 +280,28 @@ Module i8051_Decode.
     a <- acc_addr;
     av <- read_byte a;
     write_byte av a.
+  Definition conv_LJMP (op : operand) : Conv unit :=
+    match op with
+      | Imm16_op x =>
+        y <- load_int x;
+        set_pc y
+      | _ => emit error_rtl
+    end.
+  Definition conv_JMP : Conv unit :=
+
+    Pdpl <- load_Z size8 Alias.DPL;
+    Pdph <- load_Z size8 Alias.DPH;
+    dph <- read_byte Pdph;
+    dpl <- read_byte Pdpl;
+    pc <- get_pc;
+    edpl <- cast_u size_pc dpl;
+    edph <- cast_u size_pc dph;
+    eight <- load_Z size_pc 8;
+    edphS <- arith shl_op edph eight;
+    dptr <- arith and_op edphS edpl;
+    newPC <- arith add_op dptr pc;
+    set_pc newPC.
+    
             
    Definition conv_ANL  (op1 op2: operand) : Conv unit :=
      a <- acc_addr;

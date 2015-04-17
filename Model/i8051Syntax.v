@@ -46,8 +46,9 @@ Definition Z_to_register(n:Z) :=
     | 6 => R6
     | _ => R7
   end.
-Definition register_to_i  s (r:register)  : Word.int s :=
-Word.repr  match r with 
+
+Definition register_to_Z   (r:register)  : Z :=
+match r with 
  | R0 =>  0
  | R1 =>  1
  | R2 =>  2
@@ -57,7 +58,8 @@ Word.repr  match r with
  | R6 =>  6
  | R7 =>  7
  end.
-
+Definition register_to_i  s (r:register)  : Word.int s :=
+Word.repr (register_to_Z r).
 
 Record address : Set := mkAddress {
   addrDisp : int8 ; 
@@ -79,6 +81,9 @@ Module Alias.
   Definition RS0 := bit_addr (Word.repr (hD0+3)).
   Definition OV := bit_addr (Word.repr (hD0+2)).
   Definition P := bit_addr (Word.repr (hD0)).
+
+  Definition DPL := h82.
+  Definition DPH := h83.
 End Alias.
 Inductive operand : Set := 
 | Imm_op : int8 -> operand
@@ -87,6 +92,7 @@ Inductive operand : Set :=
 | Offset_op : int8 -> operand
 | Acc_op : operand
 | Direct_op : int8 -> operand
+| Imm16_op : int16 -> operand
 | Indirect_op : indirect -> operand
 | Bit_op : bitAddr -> operand.
 
@@ -144,6 +150,8 @@ Inductive instr : Set :=
 | ADD   : forall (op1 op2:operand), instr
 | SETB  : forall (op1:operand), instr
 | CLR   : forall (op1:operand), instr
+| LJMP  : forall (op1:operand), instr
+| JMP   : instr
 | NOP   : instr.
 
 Inductive lock_or_rep : Set := lock | rep | repn.
