@@ -1,6 +1,6 @@
 open Test;;
 open Coq_c8051;;
-let a = Coq_c8051.computeit (Big.zero);;
+let a = mainFN ();;
 
   print_string "hello";;
 

@@ -59,7 +59,7 @@ Module i8051_MACHINE.
   Definition trace_type := trace_t.
   Record mach := { 
     pc_reg : int size_pc;
-    external : list trace_t -> nat;
+    external : list trace_t -> trace_t;
     trace : list trace_t
   }.
   Definition mach_state := mach.
@@ -510,8 +510,11 @@ Fixpoint nsteps fuel (l:loc size8) : RTL (int size8):=
       ret r
     | S n => step;; nsteps n l
   end.
-Definition dump_state n s :=
-      match nsteps n  P3_loc s with
+Definition nsteps_init (init: RTL unit) fuel (l:loc size8) : RTL (int size_addr) :=
+  init;;
+  nsteps fuel l.
+Definition dump_state n s (init: RTL unit) : option (int size_addr) :=
+      match nsteps_init init n  P3_loc s with
         | (Okay_ans v, rs') => Some v
         | (Fail_ans, rs') => None
         | (SafeFail_ans, rs') => None
@@ -626,3 +629,74 @@ Program Fixpoint set_mem_n {t}
         p6 <- arith add_op p5 addr ;
         smem p4 p6
   end.
+
+Open Local Scope char_scope.
+Definition nibble_ns x : option (string*nat):=
+  match x with
+      | "0" => Some ("0000"%string, 0%nat)
+      | "1" => Some ("0001"%string, 1%nat)
+      | "2" => Some ("0010"%string, 2%nat)
+      | "3" => Some ("0011"%string, 3%nat)
+      | "4" => Some ("0100"%string, 4%nat)
+      | "5" => Some ("0101"%string, 5%nat)
+      | "6" => Some ("0110"%string, 6%nat)
+      | "7" => Some ("0111"%string, 7%nat)
+      | "8" => Some ("1000"%string, 8%nat)
+      | "9" => Some ("1001"%string, 9%nat)
+      | "A" => Some ("1010"%string, 10%nat)
+      | "B" => Some ("1011"%string, 11%nat)
+      | "C" => Some ("1100"%string, 12%nat)
+      | "D" => Some ("1101"%string, 13%nat)
+      | "E" => Some ("1110"%string, 14%nat)
+      | "F" => Some ("1111"%string, 15%nat)
+      | _ => None
+  end.
+  
+Definition nibble x : option nat:=
+  match nibble_ns x with
+      | Some (_,n) => Some n
+      | _ => None
+  end.
+
+Open Local Scope nat_scope.
+Definition maybe_app {A:Type} a (m: option (list A)) := match m with | Some v =>  Some (a::v) | None => None end.
+ Fixpoint ihx_to_byte_assoc_line ihx (mode:option (nat*nat)) acc:=
+  match ihx, mode with
+    | ":"::n1::n2::l1::l2::rt1::rt2::r, None =>
+      match nibble n1,  nibble n2, nibble l1, nibble l2 with
+        | Some a, Some b, Some c, Some d => ihx_to_byte_assoc_line r (Some (a*16+b, c*16+d)) acc
+        | _, _, _, _ => None
+      end
+    | a::b::"010"::r, None => ihx_to_byte_assoc_line r None acc
+    | a::b::r, Some (fuel, addr) =>
+      match fuel, nibble a, nibble b with
+        | O, _, _ => ihx_to_byte_assoc_line r None acc
+        | S n, Some n1, Some n2 =>
+          ihx_to_byte_assoc_line r (Some (n, addr+8)) (maybe_app (addr, (n1*16)+n2) acc)
+        | _, _, _ => None
+      end
+    | a::b::nil, _ => acc
+    | _, _ => acc
+                
+    end.
+
+
+ Require Import Ascii.
+ Fixpoint asciis (s:string) : list ascii:=
+   match s with
+       | EmptyString => nil
+       | String c r => c:: asciis r
+                        end.
+ Definition to_ascii := map asciis.
+
+ Definition line_to_program x := fold_right (fun s x =>  app (s++"010"::nil) x ) nil x.
+ Fixpoint  load_code_bytes (b: list (nat * nat)) : RTL unit :=
+   match b with
+     |(addr, code)::r =>
+      set_code_byte (Word.repr (Z_of_nat addr)) (Word.repr (Z_of_nat code));;
+        load_code_bytes r
+     |_ =>ret tt
+   end.
+   
+
+ 

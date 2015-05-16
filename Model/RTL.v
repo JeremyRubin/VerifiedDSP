@@ -198,6 +198,13 @@ Module RTL(M : MACHINE_SIG).
                            rtl_mach_state := rtl_mach_state rs ;
                            rtl_code := rtl_code rs ; 
                            rtl_memory := AddrMap.set addr v (rtl_memory rs) |}).
+
+  Definition set_code_byte (addr:int size_pc) (v:int size8) : RTL unit := 
+    fun rs => (Okay_ans tt, {| rtl_oracle := rtl_oracle rs ; 
+                           rtl_env := rtl_env rs ; 
+                           rtl_mach_state := rtl_mach_state rs ;
+                           rtl_code := CodeMap.set addr v (rtl_code rs) ; 
+                           rtl_memory := rtl_memory rs |}).
   Definition get_ps s (r:pseudo_reg s) : RTL (int s) := 
     fun rs => (Okay_ans (rtl_env rs r), rs).
   Definition get_loc s (l:location s) : RTL (int s) :=
