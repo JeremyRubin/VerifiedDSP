@@ -1,127 +1,18 @@
-
+ Require Import String.
+ Require Import Ascii.
 Require Import List.
 Require Import ListSet.
 Require Import EqNat.
 Import ListNotations.
-
 Require Import Arith.
 Open Scope list_scope.
-Module Type IO_SIG.
-  Variable t : Type.
-  Variable trace : Set.
-  Variable func : Set.
-  Variable nargs : func -> nat.
-End IO_SIG.
 
-Module IO.
-  Definition t :=  nat.
-  Definition trace := list (list t).
-  Inductive func_ :=
-  | fn_args : nat -> (trace -> t) -> func_.
-  Definition func := func_.
-  Definition nargs f :=
-    match f with
-      | fn_args n _ => n
-    end.
-End IO.
-
-Module Type Component_Sig(IO:IO_SIG).
-  Variable io : IO.func.
-End Component_Sig.
-
-Module Component(I:IO_SIG)(M:Component_Sig(I)).
-  Import M.
-  Definition io := M.io.
-End Component.
-
-Module Wiring(IO:IO_SIG).
-  Inductive wiring :=
-  | base :  wiring
-  | watch_set :  wiring -> list nat -> IO.func -> nat ->  wiring
-  | just_set : wiring  -> IO.func -> nat -> wiring
-  | join : wiring -> wiring -> wiring.
-  Notation  "w //  m ~> f ~>  n" := (watch_set w m f n) (at level 80, m at next level). 
-  Notation  "w */  f ~>  n" := (just_set w f n) (at level 80, m at next level). 
-
-  Notation "w1 ~&~ w2" := (join w1 w2) (at level 80).
+Notation "$ x" := (fun f => f x) (at level 0, right associativity, only parsing).
+Notation "f $ x .. y" := (.. (f x) .. y) (at level 0, right associativity, only parsing).
 
 
-  Fixpoint output_pins w s: set nat :=
-    let add_i := set_add%nat nat eq_nat_dec in
-    match w with 
-      | base  =>
-        s
-      | watch_set w' from fn to =>
-        output_pins w' (add_i  to s)
-      | just_set w' fn to =>
-        output_pins w' (add_i to s)
-      | join w1 w2 => set_union%nat nat eq_nat_dec (output_pins w1 s) (output_pins w2 nil)
-    end.
 
-  Fixpoint input_pins w s: set nat :=
-    let add_i := set_add%nat nat eq_nat_dec in
-    match w with 
-      | base  => s
-      | watch_set w' from fn to =>
-        output_pins w'
-                    (fold_left (fun se f => add_i f se) s  from)
 
-      | just_set w' fn to =>  output_pins w' s
-      | join w1 w2 => set_union%nat nat eq_nat_dec (output_pins w1 s) (output_pins w2 nil)
-    end.
-
-  Fixpoint all_pins' w s: set nat :=
-    let add_i := set_add%nat nat eq_nat_dec in
-    match w with 
-      | base  => s
-      | watch_set w' from fn to =>
-        all_pins' w'
-                  (add_i to (fold_left (fun se f => add_i f se) s  from))
-
-      | just_set w' fn to =>  all_pins' w' (add_i to s)
-      | join w1 w2 => set_union%nat nat eq_nat_dec (all_pins' w1 s) (all_pins' w2 nil)
-    end.
-  Definition pins w := all_pins' w nil.
-  (* Checks that all observers have a source and that only one setter per nat *)
-  Fixpoint valid_wiring' w ins outs: Prop :=
-    let add_i := set_add%nat nat eq_nat_dec in
-    let notin := (fun el  s => (not (set_In%nat nat  el s))) in
-    let union := set_union%nat nat eq_nat_dec in
-    let intersect := set_inter%nat nat eq_nat_dec in
-    match w with 
-      | base  =>
-        (* Check that the intersection of inputs and outputs is inputs,
-         ie, everything can be read *)
-        (intersect ins outs) = ins
-      | watch_set w' from fn to =>
-        notin to outs /\
-        IO.nargs fn = length from /\
-        valid_wiring' w'
-                      ( fold_left  (fun s f => add_i f s) ins from) (add_i to outs)
-      | just_set w' fn to=>
-        notin to outs
-        /\ valid_wiring' w' ins (add_i to outs)
-      | join w1 w2 =>
-        let w1_out := output_pins w1 [] in
-        let w2_out := output_pins w2 [] in
-        (* intersect w1_out w2_out = [] /\ (*is implicitly checked*)  *) 
-        (* We union in the others outputs to say that w2 is promising
-        that it will make this available as an output (so treat it as an
-        available input too *)
-        valid_wiring' w1 (union w2_out ins) (union
-                                               w2_out outs) /\
-        valid_wiring' w2  (union w1_out ins) (union w1_out outs)
-    end.
-  Definition valid_wiring w : Prop :=
-    valid_wiring' w nil nil.
-
-  Require Import Omega.
-  Ltac autowire :=
-    unfold valid_wiring;
-    unfold valid_wiring';
-    simpl;
-    repeat (try split; try omega).
-End Wiring.
 
 
 Fixpoint len {T:Type}(x : list T) : nat :=
@@ -142,14 +33,18 @@ Module IORUN.
 
 
   Definition pin_trace_gen w : list (nat* list IO.t):= map (fun p => (p, nil)) (pins w).
-
-  Fixpoint find_trace p pt : list IO.t :=
+  Search option.
+  Fixpoint find_trace p pt  : option (list IO.t) :=
     match pt with 
-      | nil => nil
-      | (p', t)::rest => if beq_nat p' p then t else find_trace p rest
+      | [] => None
+      | (p', t)::rest => if beq_nat p' p then Some t else find_trace p rest 
     end.
-  Definition find_traces (p :list nat) (pt : list (nat * list IO.t)) : list (list IO.t) :=
-    map (fun f =>  (find_trace f pt))  p.
+  Definition find_traces (p :list nat) (pt : list (nat * list IO.t))  : option (list (list IO.t)) :=
+    let elts :=map (fun f =>  (find_trace f pt))  p in
+    let none := forallb (fun x => match x with | None => false | _ => true end ) elts in
+    if none then 
+      Some (map (fun f =>  match f with | None => [] | Some x => x end) elts)
+    else None.
 
   Definition any_trace  (pt : list (nat * list IO.t) ): list IO.t :=
     match pt with 
@@ -159,8 +54,12 @@ Module IORUN.
   Fixpoint update_trace pt u acc:=
     match u with
       | (p, iot)::rest =>
-        update_trace pt rest ((p, iot::(find_trace p pt))::acc)
-      | nil => acc
+        match find_trace p pt with
+          | None => update_trace pt rest acc
+          | Some trace =>
+            update_trace pt rest ((p, iot::trace)::acc)
+        end
+      | [] => acc
     end.
   Print IO.func.
   Fixpoint step' w pt (u : list (nat * IO.t))  :=
@@ -169,12 +68,17 @@ Module IORUN.
       | base  =>
         update_trace pt (u) nil
       | watch_set w' from (IO.fn_args n fn) to =>
-        let traces := (find_traces from pt) in
-        step' w' pt ((to, fn traces )::u)
+        let o_traces := (find_traces from pt) in
+        match o_traces with
+          | None => pt
+          | Some traces =>
+            step' w' pt ((to, fn traces )::u)
+        end
       |  just_set w' (IO.fn_args n fn) to =>
          step' w' pt  ((to, fn [any_trace  pt ])::u)
       | join w1 w2 =>
-        step' w2 pt [] ++ step' w1 pt u
+        app (step' w2 pt [])  (step' w1 pt u)
+      | doc w' _ _ => step' w' pt u
     end.
   Definition step w :=
     step' w (pin_trace_gen w) [].
@@ -227,19 +131,21 @@ Definition alternator : IO.func :=IO.fn_args 1
 Definition zero_rail   : IO.func := IO.fn_args 0 (fun _ =>0).
 
 Definition delay_n n default : IO.func := IO.fn_args 1
-                                                   (fun x => nth n (hd [] x) default).
+                                                     (fun x => nth n (hd [] x) default).
 
-
+Definition p := 1.
+Definition s := "Hello".
 Definition demo1 := base
                       */  zero_rail ~> 0
                       //  [5] ~> integrator~> 6
                       // [2] ~> integrator~> 3
                       */ incrementor ~> 2
                       */ IO.fn_args 0 (fun _=> 10) ~> 5
-                      */ alternator ~> 8.
-
+                      */ alternator ~> 8
+                      # 2 "com".
+Compute (docstring demo1).
 Definition demo2 := base */integrator ~> 9
-// [6] ~> delay_n 5 0 ~> 10.
+                         // [6] ~> delay_n 5 0 ~> 10.
 
 Theorem good_build : valid_wiring (demo1 ~&~ demo2).
 Proof. 
@@ -252,23 +158,126 @@ Proof.
 Qed.
 
 Compute (find_trace 10 (run (demo1 ~&~ demo2) 10)).
+Theorem no_modify_history_update: forall pin_tr upd n,
+                                    let a := (find_trace n (update_trace pin_tr upd [])) in
+                                    let b := find_trace n pin_tr in
+                                    match (a, b) with
+                                      | (Some (a'::rest), Some rest') =>
+                                        rest = rest'
+                                      | _ => True
+                                    end.
+  intros.
+  unfold a, b. 
 
-Theorem alternates: forall n,
-                      let tr := run demo1 n in
-                      let a :=find_trace 8 tr in
-                      n >2 -> (hd 0 a) <> (hd 0 (tl a)).
+  auto.
+  generalize dependent pin_tr.
+
+  induction upd.
+
+  intros.
+
+  induction pin_tr.
+
+  simpl.
+  auto.
+  
+  simpl.
+  auto.
+
+  intros.
+  remember (find_trace n (update_trace pin_tr (a::upd) [] )).
+  destruct o; auto.
+
+  destruct  l; auto.
+
+  remember (find_trace n pin_tr).
+  destruct o; auto.
+
+
+  admit.
+Qed.
+Theorem step_history_safe: forall l w n, 
+                             l = tl (step' w l n).
+  admit.
+Qed.
+
+Theorem no_modify_history: forall n w,  run  w n = tl (run w (S n)).
 Proof.
   intros.
 
-  intros.
   induction n.
-  inversion H.
+  unfold run, run'. 
+  remember (pin_trace_gen w).
+  apply step_history_safe.
 
-  unfold run, run', step', update_trace, demo1 , alternator, integrator, zero_rail,
-  incrementor, find_trace , update_trace, pin_trace_gen, pins, output_pins, length, alt,
-  set_add, set_remove, set_inter in tr.
-  simpl in tr.
+  unfold run.
+  
+  remember (pin_trace_gen w).
+  unfold run'.
+  
+  admit.
+  (*  unfold run, run'. *)
+
+  (* apply step_history_safe. *)
+  
+  (*  simpl. *)
+  (*  apply no_modify_history_update. *)
+Qed.
+
+Check no_modify_history.
+Theorem alternates:  forall n, let tr := run demo1 n in
+                               let a :=find_trace 8 tr in
+                               match a with
+                                 | Some ( 0::1::rest)
+                                 | Some (1::0::rest)  => True
+                                 | Some [1] | Some [0] | Some [] => True
+                                 | _ => False
+                                          
+                               end.
+Proof.
+  intros. destruct n.
+  simpl.
+  auto.
 
   unfold a.
-  admit. (** :( **)
+  unfold tr.
+  unfold run.
+  remember (pin_trace_gen demo1).
+
+  
+  
+  auto.
+  destruct l;auto.
+  simpl.
+  auto.
+
+  admit.
+
+  admit.
 Qed.
+
+(* joined well formed circuits aren't interfered with by an additional module *)
+Theorem non_interference : forall w w', valid_wiring w ->
+                                        valid_wiring  (w ~&~ w') ->
+                                        forall n t,
+                                          let orig := find_trace t (run w n) in
+                                          let mod := find_trace t (run (w ~&~ w') n) in
+                                          match  orig, mod with
+                                            | Some a, Some b => a = b
+                                            | Some a, None => False
+                                            | None, Some a => True
+                                            | None, None => True
+                                          end.
+admit.
+Qed.
+
+(* Funcs are the same*)
+Definition func_same  := forall tr (i i':IO.func),
+                           match i, i' with
+                             |IO.fn_args n f, IO.fn_args n' f'=>
+                              f tr = f' tr /\ n = n'
+                           end.
+
+
+Definition wrapper := IO.func -> IO.func.
+
