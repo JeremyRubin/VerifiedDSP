@@ -1,5 +1,22 @@
 
+
+Require Import String.
+Require Import Ascii.
+Require Import List.
+Require Import ListSet.
+Require Import EqNat.
+Import ListNotations.
+Require Import Arith.
+Open Scope list_scope.
+Require Import IOModule.
+
+
+Require Import Wiring.
+
+Module Wires := Wiring.Wiring(IO).
+
 Module IORUN.
+  Import Wires.
 
 
   Definition pin_trace_gen w : list (nat* list IO.t):= map (fun p => (p, nil)) (pins w).

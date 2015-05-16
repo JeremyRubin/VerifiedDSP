@@ -1,3 +1,14 @@
+Require Import String.
+Require Import Ascii.
+Require Import List.
+Require Import ListSet.
+Require Import EqNat.
+Import ListNotations.
+Require Import Arith.
+Open Scope list_scope.
+
+Require Import IOModule.
+
 Module Wiring(IO:IO_SIG).
   Inductive wiring :=
   | base :  wiring
@@ -5,10 +16,11 @@ Module Wiring(IO:IO_SIG).
   | just_set : wiring  -> IO.func -> nat -> wiring
   | join : wiring -> wiring -> wiring
   | doc : wiring -> nat -> string -> wiring.
-  Notation  "w //  m ~> f ~>  n" := (watch_set w m f n) (at level 80, m at next level). 
-  Notation  "w */  f ~>  n" := (just_set w f n) (at level 80, m at next level). 
-  Notation "w1 ~&~ w2" := (join w1 w2) (at level 80).
-  Notation "w # p c " := (doc w p c) (at level 80, p at level 0).
+  Notation  "w //  m ~> f ~>  n" := (watch_set w m f n) (at level 80, m at next level) : wiring_scope. 
+  Notation  "w */  f ~>  n" := (just_set w f n) (at level 80, m at next level): wiring_scope. 
+  Notation "w1 ~&~ w2" := (join w1 w2) (at level 80) : wiring_scope.
+  Notation "w # p c " := (doc w p c) (at level 80, p at level 0) : wiring_scope.
+  Open Scope wiring_scope.
 
   Open Scope string_scope.
   Fixpoint docstring' w acc :=
@@ -108,13 +120,13 @@ Module Wiring(IO:IO_SIG).
     match w1 with
       | base => base
       | watch_set w' from fn to =>
-         (watch_set  (rewire_offset w' n) (map (fun x=>x+ n)from) fn (to+n))
+        (watch_set  (rewire_offset w' n) (map (fun x=>x+ n)from) fn (to+n))
       | just_set w' fn to =>
-      just_set  (rewire_offset w' n) fn (to+n) 
+        just_set  (rewire_offset w' n) fn (to+n) 
       | join w1 w2 =>
         join (rewire_offset w1 n) ( rewire_offset w2 n ) 
       | doc w' p c =>  
-         (doc  (rewire_offset w' n ) (p+n) c)
+        (doc  (rewire_offset w' n ) (p+n) c)
     end.
   Definition rewire w1 w2 : wiring :=
     let m := fold_left max (pins w2) 0 in

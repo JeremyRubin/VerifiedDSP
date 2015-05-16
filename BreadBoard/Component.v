@@ -1,5 +1,5 @@
 
-Import IO.
+Require Import IOModule.
 Module Type Component_Sig(IO:IO_SIG).
   Variable io : IO.func.
 End Component_Sig.

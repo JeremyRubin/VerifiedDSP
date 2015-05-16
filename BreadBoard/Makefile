@@ -1,4 +1,4 @@
-MODULES : Wiring IO Component Common Run Breadboard
+MODULES := Wiring IOModule Component Common Run Breadboard
 # DFACorrectness FastVerifier i8051Lemmas VerifierCorrectness
 VS 	:= $(MODULES:%=%.v)
 
