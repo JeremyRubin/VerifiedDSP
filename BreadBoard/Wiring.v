@@ -31,7 +31,7 @@ Module Wiring(IO:IO_SIG).
       | join w1 w2 => docstring' w2 (docstring' w1 acc)
       | doc w' p c =>
         let n : string := (String (ascii_of_nat p) "") in 
-        docstring' w' ("Port" ++ n ++ c ++ "\n" ++ acc)
+        docstring' w' ("Port Ascii(" ++ n ++ ") "++c ++ "\n" ++ acc)
 
     end.
   Definition docstring w := docstring' w "".

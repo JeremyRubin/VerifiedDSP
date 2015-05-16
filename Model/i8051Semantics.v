@@ -53,13 +53,13 @@ Module i8051_MACHINE.
                    P3 : int size8}.
   Record trace_t := { executing :instr;
                       pc :int size_pc;
-                      cycle :Z;
+                      cycle : Z;
                       output : ports}.
   
   Definition trace_type := trace_t.
   Record mach := { 
     pc_reg : int size_pc;
-    external : list trace_t -> trace_t;
+    external : list trace_t -> nat;
     trace : list trace_t
   }.
   Definition mach_state := mach.
@@ -502,10 +502,20 @@ Definition step : RTL unit :=
     [instr,length] <- fetch_instruction pc ; 
     let default_new_pc := Word.add pc (Word.repr (Zpos length)) in
           run_rep  instr default_new_pc.
-
-Check fetch_instruction.
-Check LJMP (Reg_op R0).
-
+Check step.
+Fixpoint nsteps fuel (l:loc size8) : RTL (int size8):=
+  match fuel with
+    | O =>
+      r <- get_loc l ; 
+      ret r
+    | S n => step;; nsteps n l
+  end.
+Definition dump_state n s :=
+      match nsteps n  P3_loc s with
+        | (Okay_ans v, rs') => Some v
+        | (Fail_ans, rs') => None
+        | (SafeFail_ans, rs') => None
+      end.
            
 Definition step_immed (m1 m2: rtl_state) : Prop := step m1 = (Okay_ans tt, m2).
 Notation "m1 ==> m2" := (step_immed m1 m2) (at level 55, m2 at next level).

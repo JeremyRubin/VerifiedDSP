@@ -60,9 +60,10 @@ Definition demo1 := base */  zero_rail ~> 0
                          */ incrementor ~> 2
                          */ IO.fn_args 0 (fun _=> 10) ~> 5
                          */ alternator ~> 8
-                         # 2 "com".
+                         # 3 "Integrated incrementor".
 Compute (docstring demo1).
 Definition demo2 := base */integrator ~> 9
                          // [6] ~> delay_n 5 0 ~> 10.
+
 
 
