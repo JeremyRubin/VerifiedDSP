@@ -33,30 +33,13 @@ Module i8051_MACHINE.
   Definition size_addr := size8.
   Definition size_pc := size16.
 
-  Inductive regbank : Set :=
-    |bank_zero : regbank
-    |bank_one :regbank
-    | bank_two :regbank
-                 | bank_three : regbank.
-  Definition bits_to_bank  (hi lo:bool) :=
-    match (hi, lo) with
-      | (true, true) =>  bank_zero
-      | (true, false) => bank_one
-      | (false, true) => bank_two
-      | (false, false) => bank_three
-    end.
-  Definition bank_to_offset (b: regbank) : Word.int size_addr :=
-    Word.repr (match b with
-      |bank_zero => 0
-      |bank_one =>8
-      |bank_two =>16
-      |bank_three => 24
-    end).
   Inductive loc : nat -> Set := 
-  | pc_loc : loc size_pc.
+  | pc_loc : loc size_pc
+  | P0_loc : loc size8
+  | P1_loc : loc size8
+  | P2_loc : loc size8
+  | P3_loc : loc size8.
 
-  Inductive ploc : nat -> Set :=
-  | ram_loc : register -> ploc size8.
 
   Definition location := loc.
 
@@ -64,25 +47,55 @@ Module i8051_MACHINE.
   Definition upd A (eq_dec:forall (x y:A),{x=y}+{x<>y}) B (f:fmap A B) (x:A) (v:B) : 
     fmap A B := fun y => if eq_dec x y then v else f y.
   Definition look A B (f:fmap A B) (x:A) : B := f x.
-
+  Record ports := {P0 : int size8;
+                   P1 : int size8;
+                   P2 : int size8;
+                   P3 : int size8}.
+  Record trace_t := { executing :instr;
+                      pc :int size_pc;
+                      cycle :Z;
+                      output : ports}.
+  
+  Definition trace_type := trace_t.
   Record mach := { 
-    pc_reg : int size_pc
+    pc_reg : int size_pc;
+    external : list trace_t -> trace_t;
+    trace : list trace_t
   }.
   Definition mach_state := mach.
 
   Definition get_location s (l:loc s) (m:mach_state) : int s := 
     match l in loc s' return int s' with 
       | pc_loc => pc_reg m
+      | P0_loc => P0 (output (external m (trace m)))
+      | P1_loc => P1 (output (external m (trace m)))
+      | P2_loc => P2 (output (external m (trace m)))
+      | P3_loc => P3 (output (external m (trace m)))
     end.
 
 
-  Definition set_pc v  :=  {|
-       pc_reg := v
-    |}.
 
+  Definition set_pc v m  :=  {|
+       pc_reg := v;
+       trace := trace m;
+       external := external m
+    |}.
+  Definition set_external f m:= {|
+                                 pc_reg := pc_reg m;
+                                 trace := trace m;
+                                 external := f
+                                               |}.
+                                
+  Definition add_trace t m:= {|
+                                 pc_reg := pc_reg m;
+                                 trace := t :: trace m;
+                                 external := external m
+                                               |}.
+  Definition get_trace := trace.
   Definition set_location s (l:loc s) (v:int s) (m:mach_state) := 
     match l in loc s' return int s' -> mach_state with 
-      | pc_loc => fun v => set_pc v
+      | pc_loc => fun v => set_pc v m
+      | _ => fun _ => m (** Do Nothing **)
     end v.
 End i8051_MACHINE.
 
@@ -391,12 +404,28 @@ Module i8051_Decode.
   *)
 
   Definition instr_to_rtl (i: instr) :=
+  let p := {|P0 := Word.one;
+            P1 := Word.one;
+            P2 := Word.one;
+            P3 := Word.one|} in
+  let t := {| executing := i;
+                      pc := Word.one;
+                      cycle := 0 ; (** TODO **)
+                      output := p|} in
     runConv 
-    (match i with
+      (
+      emit (add_trace_rtl t) ;;
+        match i with
          | ANL  op1 op2 => conv_ANL  op1 op2
+         (* | ADD op1 op2 => conv_ADD op1 op2 *)
+         | SETB op => conv_SETB op
+         | CLR op => conv_CLR op
+         | LJMP op => conv_LJMP op
+         | JMP => conv_JMP
+         | NOP => conv_NOP
          | _ => emit error_rtl 
-    end
-    ).
+       end
+      ).
 
 End i8051_Decode.
 
@@ -432,7 +461,6 @@ Fixpoint parse_instr_aux
 
 Definition parse_instr (pc:int size_pc) : RTL ( instr * positive) :=
 
-  pc <- get_loc pc_loc ; 
   (* add the PC to it *)
     parse_instr_aux 15 pc 1 Decode.i8051_PARSER.initial_parser_state.
 
@@ -441,9 +469,16 @@ Definition parse_instr (pc:int size_pc) : RTL ( instr * positive) :=
     how big the instruction is.  We fail if the bits do not parse, or have more
     than one parse.  We should fail if these locations aren't mapped, but we'll
     deal with that later. *)
+Fixpoint fetch_n (n:nat) (loc:int size_addr) (r:rtl_state) : list int8 :=
+  match n with
+    | 0%nat => nil
+    | S m =>
+      AddrMap.get loc (rtl_memory r) ::
+                  fetch_n m (Word.add loc (Word.repr 1)) r
+  end.
+
 Definition fetch_instruction (pc:int size_pc) : RTL ( instr * positive) :=
-  [pi, len] <- parse_instr pc;
-  ret (pi,len).
+  parse_instr pc.
 
 Fixpoint RTL_step_list l :=
   match l with
@@ -454,6 +489,7 @@ Fixpoint RTL_step_list l :=
 Definition run_rep 
    (ins: instr) (default_new_pc : int size_pc) : RTL unit := 
   RTL_step_list (i8051_Decode.instr_to_rtl ins);;
+  
 ret tt.
 
 Definition step : RTL unit := 
@@ -467,10 +503,116 @@ Definition step : RTL unit :=
     let default_new_pc := Word.add pc (Word.repr (Zpos length)) in
           run_rep  instr default_new_pc.
 
+Check fetch_instruction.
+Check LJMP (Reg_op R0).
+
+           
 Definition step_immed (m1 m2: rtl_state) : Prop := step m1 = (Okay_ans tt, m2).
 Notation "m1 ==> m2" := (step_immed m1 m2) (at level 55, m2 at next level).
 Require Import Relation_Operators.
+Print clos_refl_trans.
 Definition steps := clos_refl_trans rtl_state step_immed.
+Check steps.
 Notation "m1 '==>*' m2" := (steps m1 m2) (at level 55, m2 at next level).
 
 
+Notation "a $ b" := (a b) (at level 90, right associativity).
+(* ($) :: (a -> b) -> a -> b *)
+(*                           f $ x = f x *)
+
+Definition x := map (fun _ => step) $ (1::2::nil).
+Definition lr0 : RTL (instr * positive) := ret (LJMP (Imm16_op (Word.repr (16*16))), ZIndexed.index 8).
+Check map.
+(* Lemma t : nstep 2 nil = lr1 -> nstep 4 nil = lr2. *)
+(* Proof. *)
+(*   intros. *)
+(*   unfold nstep in H. *)
+Fixpoint compute_parity_aux {s} op1 (op2 : pseudo_reg size1) (n: nat) :
+  Conv (pseudo_reg size1) :=
+  match n with
+    | O => @load_Z size1 0
+    | S m =>
+      op2 <- compute_parity_aux op1 op2 m;
+        one <- load_Z s 1;
+        op1 <- arith shru_op op1 one;
+        r <- cast_u size1 op1;
+        @arith size1 xor_op r op2
+  end.
+
+Definition compute_parity {s} op : Conv (pseudo_reg size1) :=
+  r1 <- load_Z size1 0;
+  one <- load_Z size1 1;
+  p <- @compute_parity_aux s op r1 8; (* ACHTUNG *)
+  arith xor_op p one.
+Definition lmem  (a:pseudo_reg size8) : Conv (pseudo_reg size8):=
+  read_byte a.
+
+
+Program Fixpoint load_mem_n  (addr:pseudo_reg size8)
+        (nbytes_minus_one:nat) : Conv (pseudo_reg ((nbytes_minus_one+1) * 8 -1)%nat) :=
+  match nbytes_minus_one with
+    | O => lmem addr
+    | S n =>
+      rec <- load_mem_n addr n ;
+        count <- load_Z size8 (Z_of_nat (S n)) ;
+        p3 <- arith add_op addr count ;
+        nb <- lmem p3 ;
+        p5 <- cast_u ((nbytes_minus_one + 1)*8-1)%nat rec ;
+        p6 <- cast_u ((nbytes_minus_one + 1)*8-1)%nat nb ;
+        p7 <- load_Z _ (Z_of_nat (S n) * 8) ;
+        p8 <- arith shl_op p6 p7 ;
+        arith or_op p5 p8
+  end.
+Definition load_mem8  (addr:pseudo_reg size8) :=
+  load_mem_n addr 0.
+
+Definition iload_op8  (op:operand) : Conv (pseudo_reg size8) :=
+  match op with
+    | Imm_op i => load_int i
+    | Reg_op r => load_reg r
+    | Address_op a =>
+      p1 <- load_int (addrDisp a) ; read_byte p1
+    | Offset_op off => p1 <- load_int off;
+        load_mem8 p1
+    | Acc_op => acc_addr
+    | Direct_op d =>  load_int d
+    | Imm16_op i => acc_addr
+    | Indirect_op a => match a with
+                           | ind_reg i =>
+                             a <- load_reg i;
+                               read_byte a
+                       end
+    | Bit_op ( bit_addr baddr )=> 
+          if is_valid_bit_addr baddr then
+            let addr := Word.and baddr (Word.repr  3) in
+            let bsel := Word.and baddr (Word.not (Word.repr 3)) in
+            let andmask := Word.shl (Word.repr 1) bsel in
+            andmaskReg <- load_int andmask;
+            a <- load_int addr;
+            av <- read_byte a;
+            av' <- arith and_op av andmaskReg;
+            bselreg <- load_int bsel;
+            arith shru_op av' bselreg
+            else
+              acc_addr
+  end. (** THIS SUCKS **)
+
+Definition smem  (v:pseudo_reg size8) (a:pseudo_reg size8): 
+  Conv unit :=
+  
+  write_byte v a.
+
+Program Fixpoint set_mem_n {t} 
+        (v: pseudo_reg (8*(t+1)-1)%nat) (addr : pseudo_reg size8) : Conv unit :=
+  match t with
+    | O => smem v addr
+    | S u =>
+      p1 <- cast_u (8*(u+1)-1)%nat v ;
+        set_mem_n p1 addr ;;
+                  p2 <- load_Z (8*(t+1)-1)%nat (Z_of_nat  ((S u) * 8)) ;
+        p3 <- arith shru_op v p2 ;
+        p4 <- cast_u size8 p3 ;
+        p5 <- load_Z size8 (Z_of_nat (S u)) ;
+        p6 <- arith add_op p5 addr ;
+        smem p4 p6
+  end.

@@ -9,7 +9,7 @@
    the License, or (at your option) any later version.
 *)
 
-
+Add LoadPath "../Model".
 Require Import Coqlib.
 Require Import Parser.
 Require Import Ascii.

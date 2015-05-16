@@ -64,6 +64,8 @@ Implicit Arguments make_dfa [t].
 Definition non_cflow_instrs : list (parser instruction_t) := 
     SETB_p::CLR_p::NOP_p::ANL_p::ADD_p::nil.
 
+Definition instrs : list (parser instruction_t) := 
+    LJMP_p::JMP_p::SETB_p::CLR_p::NOP_p::ANL_p::ADD_p::nil.
 Definition non_cflow_instr i :=
   match i with
       | SETB _ | CLR _ | NOP  | ANL _ _ | ADD _ _ => true
@@ -73,6 +75,7 @@ Definition non_cflow_instr i :=
     operations. *)
 
 Definition non_cflow_parser := alts non_cflow_instrs.
+Definition all_parsers := alts instrs.
 
 Definition non_cflow_parser_list :=
   (List.map (fun (p:parser instruction_t) =>  p)

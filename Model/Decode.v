@@ -183,7 +183,7 @@ Module i8051_PARSER.
 
   Definition bitwise_p pre op := pre $$ (
                              bits "0011" @ (fun _ => op (Bit_op Alias.C) %% instruction_t)
-                                    |+| "0010"  $$ bit_address @ (fun i => CLR i %% instruction_t)).
+                                    |+| "0010"  $$ bit_address @ (fun i => op i %% instruction_t)).
   Definition SETB_p := bitwise_p "1101" SETB.
   Definition CLR_p := bits "11100100" @ (fun _ => CLR Acc_op %% instruction_t)
                            |+| bitwise_p "1100" CLR.

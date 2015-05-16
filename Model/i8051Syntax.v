@@ -82,6 +82,13 @@ Module Alias.
   Definition OV := bit_addr (Word.repr (hD0+2)).
   Definition P := bit_addr (Word.repr (hD0)).
 
+  Definition P0 := h80.
+  Definition P1 := h90.
+  Definition P2 := hA0.
+  Definition P3 := hB0.
+  Definition ports := (P0,P1,P2,P3).
+
+
   Definition DPL := h82.
   Definition DPH := h83.
 End Alias.
@@ -143,17 +150,20 @@ Definition Z_to_condition_type(n:Z) : condition_type :=
     | _ => NLE_ct
   end.
 
+Inductive is_bit_op : operand -> Set :=
+  | ibo : forall op, is_bit_op op.
 Inductive instr : Set :=
 (* two parts:  1-byte opcode instructions, followed by 2-byte in alphabetical order,
    following Table B-13 and Table ??? *) 
 | ANL   : forall (op1 op2:operand), instr
 | ADD   : forall (op1 op2:operand), instr
-| SETB  : forall (op1:operand), instr
+| SETB  : forall (op1:operand) , instr
 | CLR   : forall (op1:operand), instr
 | LJMP  : forall (op1:operand), instr
 | JMP   : instr
 | NOP   : instr.
 
+(* Check SETB (ibo (Bit_op(bit_addr (Word.repr 0)))). *)
 Inductive lock_or_rep : Set := lock | rep | repn.
 
 Record prefix : Set := mkPrefix {

@@ -209,18 +209,9 @@ Definition byte2token (b: int8) : token_id := Zabs_nat (Word.unsigned b).
     to adapt. *)
 
  (*   Eval compute in alts (SETB_p::CLR_p::NOP_p::ANL_p::ADD_p::nil). *)
-Lemma non_cflow_instr_inv (ins:instr) (s:list char_p) :
-  in_parser ( alts   (SETB_p::nil)) s (ins) -> 
-  non_cflow_instr ins = true.
-Proof.
-  intros.
-  destruct non_cflow_instr.
-  auto.
-  admit.
-Qed.
-
   
-Lemma non_cflow_instr_inv' (ins:instr) (s:list char_p) :
+
+Lemma non_cflow_instr_inv (ins:instr) (s:list char_p) :
   in_parser VerifierDFA.non_cflow_parser s (ins) -> 
   non_cflow_instr ins = true.
 
@@ -235,338 +226,24 @@ Proof.
   intros.
   generalize dependent ins.
   intros.
+
   destruct ins; auto.
-intros.  
-intros.
 
-  simpl in H.
-  Unset Printing Notations.
+  Ltac u i H := generalize (inv_alt_pi H) ; clear H; intuition;
+  unfold i, bitwise_p, arith_p, arith_p_with_direct in *; repeat (psimp || pinv); try congruence.
   
-  unfold alt in H.
-  remember (LJMP op1).
-  exfalso.
-  generalize dependent Heqi.
-  destruct H.
-  inversion H.
-  
- 
-  unfold alts in H.
-  unfold alt in H.
-  unfold fold_right in H.
+  u SETB_p H.
+  u CLR_p H0.
+  u NOP_p H0.
+  u ANL_p H0.
+  u ADD_p H0.
+  unfold never in *. pinv.
 
-  unfold non_cflow_instr.
-  destruct s in H.
-
-  destruct H.
-  subst.
-
-
-  
-    [idtac. | generalize (in_app_alts _ _ H) ; clear H ; intro H ; destruct H] ;
-  generalize (in_alts_map _ _ H) ; clear H ; intros ; pinv ;
-    injection H0 ; intros ; clear H0 ; subst.
-  generalize (pfx_nooverride H1). clear H1. intros.
-   intros.
-
-  unfold non_cflow_instrs_nosize_pre in *. simpl in *. repeat pinv.
-  (* simple instructions *)
-  Ltac punf c := unfold c in *; simpl in * ; pinv ; auto.
-  (* logic or arithmetic instructions *)
-  (* bit-test instructions *)
-  Lemma bit_test : forall pfx I x1 x2 s i,
-    only_gs_seg_override pfx = true -> 
-    in_parser (bit_test_p x1 x2 I) s i -> 
-    (forall op1 op2, no_imm_op op1 = true -> non_cflow_instr pfx (I op1 op2) = true) -> 
-    non_cflow_instr pfx i = true.
-  Proof.
-    unfold bit_test_p. intros. repeat pinv ; repeat psimp ; repeat pinv ; 
-    repeat psimp. eauto. destruct x8 ; try contradiction . eauto. eauto.
-    eauto. destruct o. destruct o0 ; auto. destruct o0 ; auto. destruct o0 ; auto.
-    destruct o0 ; auto.
-  Qed.
-  Ltac btest c := unfold c in * ; eapply bit_test ; simpl ; eauto ; intros ; auto.
-  (* unary operations and a bunch of others *)
-  Ltac unop c := 
-    punf c ; repeat pinv ; repeat psimp ; auto ; repeat pinv ; repeat psimp ; 
-      match goal with 
-        | [ H : match ?x with | Imm_op _ => _ | Reg_op _ => _ | Address_op _ => _ | Offset_op _ => _ end |- _ ] => destruct x ; try contradiction ; auto
-      end.
-  (* rotate and shift instructions *)
-  Lemma rotate : forall pfx x I s i, in_parser (rotate_p x I) s i -> 
-    only_gs_seg_override pfx = true ->
-    (forall b op ri, no_imm_op op = true -> non_cflow_instr pfx (I b op ri) = true) -> 
-    non_cflow_instr pfx i = true.
-  Proof.
-    unfold rotate_p. intros. repeat pinv ; repeat psimp ; repeat pinv ; 
-    repeat psimp ; eauto ; try (destruct x6 ; try contradiction ; eauto).
-    destruct x8 ; try contradiction ; eauto.
-  Qed.
-  Ltac rot c := unfold c in * ; eapply rotate ; eauto ; simpl ; intros ; auto.
-  Lemma shiftdouble : forall pfx x I s i, 
-    only_gs_seg_override pfx = true ->
-    in_parser (shiftdouble_p x I) s i -> 
-    (forall op r ri, no_imm_op op = true -> non_cflow_instr pfx (I op r ri) = true) -> 
-    non_cflow_instr pfx i = true.
-  Proof.
-    unfold shiftdouble_p, modrm_noreg. intros ; repeat pinv ; repeat psimp ; 
-    repeat pinv ; repeat psimp ; eauto ; repeat pinv ; repeat psimp ; 
-    unfold rm01, rm00, rm10 in * ; repeat pinv ; auto ; 
-    try (destruct x16 ; auto) ; try (destruct x14 ; auto).
-  Qed.
-  Ltac shdouble c := unfold c in * ; eapply shiftdouble ; eauto ; intros ; simpl ; auto.
-  Lemma logic_or_arith : forall pfx I b x1 x2 s i, 
-    either_prefix pfx = true ->
-    in_parser (logic_or_arith_p b x1 x2 I) s i -> 
-    (forall b op1 op2, no_imm_op op1 = true -> 
-        non_cflow_instr pfx (I b op1 op2) = true) ->
-    non_cflow_instr pfx i = true.
-  Proof.
-    intros. unfold logic_or_arith_p in * ; repeat pinv ; repeat psimp ; 
-    repeat pinv ; repeat psimp ;try (destruct o1 ; destruct o2 ; try 
-      contradiction ; eauto ; destruct x6 ; eauto) ; eauto ;
-    destruct x6 ; try contradiction ; eauto.
-  Qed.
-  Lemma simple_andb : forall x y, x = true -> y = true -> x && y = true.
-    intros. subst. auto.
-  Qed.
-  Hint Resolve simple_andb.
-  Ltac log_or_arith c := 
-    unfold c in *; eapply logic_or_arith ; eauto ; intros ; simpl ; eauto.
-  (* AAA_p *)
-  punf AAA_p.
-  (* AAD_p *)
-  punf AAD_p.
-  (* AAM_p *)
-  punf AAM_p.
-  (* AAS_p *)
-  punf AAS_p.
-  (* ADC_p *)
-  log_or_arith ADC_p.
-  (* ADD_p *)
-  log_or_arith ADD_p.
-  (* AND_p *)
-  log_or_arith AND_p.
-  (* CMP_p *)
-  log_or_arith CMP_p.
-  (* OR_p *)
-  log_or_arith OR_p.
-  (* SBB_p *)
-  log_or_arith SBB_p.
-  (* SUB_p *)
-  log_or_arith SUB_p.
-  (* XOR_p *)
-  log_or_arith XOR_p.
-  (* BSF_p *)
-  unfold BSF_p in *. repeat pinv ; repeat psimp. 
-  rewrite H. destruct o ; try contradiction ; auto. 
-  destruct o0 ; contradiction. 
-  (* BSR_p *)
-  unfold BSR_p in *. repeat pinv ; repeat psimp. 
-  rewrite H.
-  destruct o ; try contradiction ; auto.
-  destruct o0 ; contradiction.
-  (* BSWAP_p *)
-  punf BSWAP_p.
-  (* BT_p *)
-  btest BT_p. simpl. auto.
-  (* BTC_p *)
-  btest BTC_p. simpl. auto.
-  (* BTR_p *)
-  btest BTR_p. simpl. eauto.
-  (* BTS_p *)
-  btest BTS_p. simpl. auto.
-  (* CDQ_p *)
-  punf CDQ_p. 
-  (* CLC_p *)
-  punf CLC_p.
-  (* CLD_p *)
-  (* FIX:  why does NACL accept CLD? *)
-  punf CLD_p.
-  (* CMOVcc_p *)
-  punf CMOVcc_p ; repeat psimp ; repeat pinv ; repeat psimp ; destruct o1 ; 
-    try contradiction ; auto ; destruct o2 ; try contradiction ; eauto.
-  (* CMC_p *)
-  punf CMC_p.
-  (* CMPXCHG_p *)
-  punf CMPXCHG_p ; repeat psimp ; repeat pinv ; repeat psimp ; destruct o1 ; 
-    try contradiction ; auto ; destruct o2 ; auto.
-  (* CWDE_p *)
-  punf CWDE_p.
-  (* DAA_p *)
-  punf DAA_p.
-  (* DAS_p *)
-  punf DAS_p.
-  (* DEC_p *)
-  unop DEC_p.
-  (* DIV_p *)
-  unop DIV_p.
-  (* FIX: why does NACL accept HLT? *)
-  (* HLT_p *)
-  punf HLT_p.
-  (* IDIV_p *)
-  unop IDIV_p.
-  (* IMUL_p *)
-  unop IMUL_p ; try (destruct o0 ; contradiction) ; try (destruct o2 ; contradiction).
-  (* INC_p *)
-  unop INC_p.
-  (* LAHF_p *)
-  punf LAHF_p.
-  (* LEA_p *)
-  punf LEA_p. repeat psimp. unfold modrm_noreg, rm00, rm01, rm10 in *. 
-  repeat pinv ; repeat psimp ; repeat pinv ; repeat psimp ; auto.
-  (* LEAVE_p *)
-  punf LEAVE_p.
-  (* MOV_p *)
-  unop MOV_p ; destruct o2 ; auto.
-  (* MOVSX_p *)
-  unop MOVSX_p ; destruct o2 ; auto. 
-  (* MOVZX_p *)
-  unop MOVZX_p ; destruct o2 ; auto.
-  (* MUL_p *)
-  unop MUL_p.
-  (* NEG_p *)
-  unop NEG_p.
-  (* NOT_p *)
-  unop NOT_p.
-  (* POP_p *)
-  unop POP_p.
-  (* POPA_p *)
-  punf POPA_p.
-  (* PUSH_p *)
-  unop PUSH_p.
-  (* PUSHA_p *)
-  unop PUSHA_p.
-  (* RCL_p *)
-  rot RCL_p.
-  (* RCR_p *)
-  rot RCR_p.
-  (* ROL_p *)
-  rot ROL_p.
-  (* ROR_p *)
-  rot ROR_p.
-  (* SAHF_p *)
-  punf SAHF_p.
-  (* SAR_p *)
-  rot SAR_p.
-  (* SETcc_p *)
-  unop SETcc_p ; destruct o2 ; auto.
-  (* SHL_p *)
-  rot SHL_p.
-  (* SHLD_p *)
-  shdouble SHLD_p.
-  (* SHR_p *)
-  rot SHR_p.
-  (* SHRD_p *)
-  shdouble SHRD_p.
-  (* STC_p *)
-  punf STC_p.
-  (* STD_p *)
-  punf STD_p. 
-  (* TEST_p *)
-  unop TEST_p.
-  (* XADD_p *)
-  unop XADD_p ; destruct o2 ; auto.
-  (* XCHG_p *)
-  unop XCHG_p ; destruct o2 ; auto. 
-  (* never *)
-  unfold never in * ; pinv.
-  (****************************************************************)
-  (* now to do the opsize_pre *)
-  Lemma opsize_prefix : forall s v,
-    in_parser valid_prefix_parser_opsize s v -> only_op_override v = true /\ 
-    either_prefix v = true.
-  Proof.
-    intros. 
-    unfold valid_prefix_parser_opsize, only_op_override, op_override_p in *.
-    repeat pinv. simpl. unfold either_prefix. simpl. auto.
-  Qed.
-  generalize (opsize_prefix H1) ; clear H1 ; intros. destruct H.
-  unfold non_cflow_instrs_opsize_pre in *. simpl in *. repeat pinv.
-  (* ADC_p *)
-  log_or_arith ADC_p.
-  (* ADD_p *)
-  log_or_arith ADD_p.
-  (* AND_p *)
-  log_or_arith AND_p.
-  (* CMP_p *)
-  log_or_arith CMP_p.
-  (* OR_p *)
-  log_or_arith OR_p.
-  (* SBB_p *)
-  log_or_arith SBB_p.
-  (* SUB_p *)
-  log_or_arith SUB_p.
-  (* SHL_p *)
-  Lemma rotate2 : forall pfx x I s i, in_parser (rotate_p x I) s i -> 
-    only_op_override pfx = true ->
-    (forall b op ri, no_imm_op op = true -> non_cflow_instr pfx (I b op ri) = true) -> 
-    non_cflow_instr pfx i = true.
-  Proof.
-    unfold rotate_p. intros. repeat pinv ; repeat psimp ; repeat pinv ; 
-    repeat psimp ; eauto ; try (destruct x6 ; try contradiction ; eauto).
-    destruct x8 ; try contradiction ; eauto.
-  Qed.
-  Ltac rot2 c := unfold c in * ; eapply rotate2 ; eauto ; simpl ; intros ; auto.
-  rot2 SHL_p.
-  (* SHLD_p *)
-  Lemma shiftdouble2 : forall pfx x I s i, 
-    only_op_override pfx = true ->
-    in_parser (shiftdouble_p x I) s i -> 
-    (forall op r ri, no_imm_op op = true -> non_cflow_instr pfx (I op r ri) = true) -> 
-    non_cflow_instr pfx i = true.
-  Proof.
-    unfold shiftdouble_p, modrm_noreg. intros ; repeat pinv ; repeat psimp ; 
-    repeat pinv ; repeat psimp ; eauto ; repeat pinv ; repeat psimp ; 
-    unfold rm01, rm00, rm10 in * ; repeat pinv ; auto ; 
-    try (destruct x16 ; auto) ; try (destruct x14 ; auto).
-  Qed.
-  Ltac shdouble2 c := unfold c in * ; eapply shiftdouble2 ; eauto ; intros ; simpl ; auto.
-  shdouble2 SHLD_p.
-  (* SHR_p *)
-  rot2 SHR_p.
-  (* SAR_p *)
-  rot2 SAR_p.
-  (* SHRD_p *)
-  shdouble2 SHRD_p.
-  (* XOR_p *)
-  log_or_arith XOR_p.
-  (* IMUL_p *)
-  unop IMUL_p. destruct o0 ; auto. destruct o2 ; auto. destruct o2 ; auto.
-  (* MOV_p *)
-  unop MOV_p ; destruct o2 ; auto.
-  (* MOVSX_p *)
-  unop MOVSX_p ; destruct o2 ; auto.
-  (* MOVZX_p *)
-  unop MOVZX_p ; destruct o2 ; auto.
-  (* NEG_p *)
-  unop NEG_p.
-  (* NOT_p *)
-  unop NOT_p. 
-  (* DIV_p *)
-  unop DIV_p.
-  (* IDIV_p *)
-  unop IDIV_p.
-  (* TEST_p *)
-  unop TEST_p.
-  (* CDQ_p *)
-  punf CDQ_p.
-  (* CWDE_p *)
-  punf CWDE_p.
-  (* MUL_p *)
-  unop MUL_p.
-  (* XCHG_p *)
-  unop XCHG_p ; destruct o2 ; auto.
-  (* never *)
-  unfold never in * ; pinv.
-  (* other stuff *)
-  generalize (pfx_rep H1). clear H1.
-  simpl in H2. repeat pinv.
-  (* CMPS_p *)
-  punf CMPS_p.
-  (* MOVS_p *)
-  punf MOVS_p.
-  (* STOS_p *)
-  punf STOS_p.
+  u SETB_p H.
+  u CLR_p H0.
+  u NOP_p H0.
+  u ANL_p H0.
+  u ADD_p H0.
   unfold never in *. pinv.
 Qed.
 
@@ -596,18 +273,19 @@ Qed.
 
 (** The [valid_prefix_parser_nooverride] parser used in the DFA is a subset of the 
     [prefix_parser_nooverride] parser used in the semantics. *)
-Lemma prefix_subset : 
-  forall s v, in_parser valid_prefix_parser_nooverride s v -> 
-    in_parser prefix_parser_nooverride s v.
-Proof.
-  unfold valid_prefix_parser_nooverride, prefix_parser_nooverride. intros.
-  repeat pinv. unfold option_perm2. econstructor. econstructor. 
-  econstructor. eauto. eauto. simpl. auto.
-  unfold option_perm2. econstructor.
-  eapply Alt_right_pi. eapply Alt_right_pi. econstructor. 
-  unfold segment_override_p. econstructor. repeat (eapply Alt_right_pi).
-  econstructor. eapply H0. eauto. eauto. simpl. auto.
-Qed.
+
+(* Lemma prefix_subset :  *)
+(*   forall s v, in_parser valid_prefix_parser_nooverride s v ->  *)
+(*     in_parser prefix_parser_nooverride s v. *)
+(* Proof. *)
+(*   unfold valid_prefix_parser_nooverride, prefix_parser_nooverride. intros. *)
+(*   repeat pinv. unfold option_perm2. econstructor. econstructor.  *)
+(*   econstructor. eauto. eauto. simpl. auto. *)
+(*   unfold option_perm2. econstructor. *)
+(*   eapply Alt_right_pi. eapply Alt_right_pi. econstructor.  *)
+(*   unfold segment_override_p. econstructor. repeat (eapply Alt_right_pi). *)
+(*   econstructor. eapply H0. eauto. eauto. simpl. auto. *)
+(* Qed. *)
 
 Lemma mem_parser_subset : 
   forall t (p:parser t) (ps:list (parser t)),
@@ -623,6 +301,7 @@ Lemma alts_subset :
     (forall p, In p ps -> In p qs) -> 
     forall s v, in_parser (alts ps) s v -> in_parser (alts qs) s v.
 Proof.
+  Search In.
   induction ps. simpl. intros. unfold never in *. pinv. intros.
   simpl in *. pinv. destruct H0. eapply mem_parser_subset. eapply (H a). auto. auto.
   apply IHps. intros. eapply H. right. auto. auto.
@@ -631,11 +310,11 @@ Qed.
 (** All parsers in [non_cflow_instrs_nosize_pre] are also in 
     [instr_parsers_nosize_pre]. *)
 Lemma ncflow_is_subset : 
-  forall p, In p non_cflow_instrs_nosize_pre -> 
-    In p instr_parsers_nosize_pre.
+  forall p, In p non_cflow_instrs -> 
+    In p instrs.
 Proof.
   Ltac pv H := repeat (try (left ; auto ; fail) ; right).
-  unfold non_cflow_instrs_nosize_pre, instr_parsers_nosize_pre. intros ; simpl in * ; 
+  unfold non_cflow_instrs, instrs. intros ; simpl in * ; 
   repeat (destruct H ; [pv H | idtac]). contradiction.
 Qed.
 
@@ -646,31 +325,8 @@ Lemma non_cflow_parser_subset :
   forall s v, in_parser non_cflow_parser s v -> 
     in_parser instruction_parser s v.
 Proof.
-  unfold non_cflow_parser, instruction_parser.
-  unfold non_cflow_parser_list, instruction_parser_list.
-  intros. generalize (in_app_alts _ _ H). clear H. intro. 
-  destruct H ; [idtac | generalize (in_app_alts _ _ H) ; clear H ; intro H ; destruct H];
-  generalize (in_alts_map _ _ H) ; clear H ; intro ; apply in_alts_app.
-  left. pinv. eapply in_map_alts. 
-  eapply (fun H1 H2 => @Cat_pi _ _ _ _ (x ++ x0) (x1,x2) x x0 x1 x2 H1 H2 (eq_refl _)
-    (eq_refl _)). apply prefix_subset. auto. eapply alts_subset. eapply ncflow_is_subset.
-  auto.
-  right. pinv. eapply in_map_alts.
-  eapply (fun H1 H2 => @Cat_pi _ _ _ _ (x ++ x0) (x1,x2) x x0 x1 x2 H1 H2 (eq_refl _)
-    (eq_refl _)) ; auto. clear H2. unfold valid_prefix_parser_opsize in *.
-  pinv. unfold prefix_parser_opsize. econstructor. econstructor. eauto. auto.
-  pinv. left. eapply in_map_alts.
-  eapply (fun H1 H2 => @Cat_pi _ _ _ _ (x ++ x0) (x1,x2) x x0 x1 x2 H1 H2 (eq_refl _)
-    (eq_refl _)). clear H2. unfold valid_prefix_parser_rep, prefix_parser_nooverride
-  in * ; repeat pinv ; unfold option_perm2. repeat econstructor.
-  econstructor. eapply Alt_right_pi. econstructor. unfold lock_or_rep_p.
-  unfold bitsleft in *. econstructor. pinv. pinv. econstructor. econstructor.
-  eauto. repeat eapply Alt_right_pi. econstructor. eauto. eauto. auto. eauto.
-  simpl. eauto. eauto. simpl. auto. apply (alts_subset non_cflow_instrs_rep_pre) ; 
-  auto. clear H1 H2 x1 x0 x x2. unfold non_cflow_instrs_rep_pre in *. 
-  unfold instr_parsers_nosize_pre. simpl. intros. 
-  repeat (destruct H ; [ repeat (try (left ; auto ; fail) ; right) | idtac ]).
-  contradiction.
+  apply alts_subset.
+  apply ncflow_is_subset.
 Qed.
   
 Definition nat_to_byte(n:nat) : int8 := Word.repr (Z_of_nat n).
@@ -738,12 +394,12 @@ Lemma non_cflow_dfa_corr1 :
     abstract_build_dfa 256 nat2bools 400 (par2rec non_cflow_parser) = Some d -> 
     forall (bytes:list int8) (n:nat) (nats2:list nat),
       dfa_recognize 256 d (List.map byte2token bytes) = Some (n, nats2) -> 
-      exists bytes1, exists pfx:prefix, exists ins:instr, 
-        in_parser non_cflow_parser (flat_map byte_explode bytes1) (pfx,ins) /\ 
-        in_parser instruction_parser (flat_map byte_explode bytes1) (pfx,ins) /\ 
+      exists bytes1, exists ins:instr, 
+        in_parser non_cflow_parser (flat_map byte_explode bytes1) ins /\ 
+        in_parser instruction_parser (flat_map byte_explode bytes1) ins/\ 
         n = length bytes1 /\ 
         bytes = bytes1 ++ (List.map nat_to_byte nats2) /\ 
-        non_cflow_instr pfx ins = true /\
+        non_cflow_instr ins = true /\
         (forall ts3 ts4,
           (length ts3 < length bytes1)%nat -> 
           bytes = ts3 ++ ts4 -> 
@@ -751,8 +407,8 @@ Lemma non_cflow_dfa_corr1 :
 Proof.
   intros. subst. rewrite build_dfa_eq in H.
   generalize (dfa_recognize_corr _ _ _ _ H (List.map byte2token bytes) 
-  (bytesLt256 _)). clear H. rewrite H0. clear H0. mysimp. destruct x0. 
-  exists (List.map nat_to_byte x). exists p. exists i. 
+  (bytesLt256 _)). clear H. rewrite H0. clear H0. mysimp. 
+  exists (List.map nat_to_byte x).  exists x0.
   assert (List.map nat_to_byte (x ++ nats2) = bytes).
   rewrite <- H. apply n2bs. rewrite map_app in H3. rewrite <- H3.
   rewrite map_length. generalize (non_cflow_instr_inv H1). 
@@ -761,7 +417,8 @@ Proof.
   intros. destruct H5. 
   assert (flat_map byte_explode (List.map nat_to_byte x) = flat_map nat2bools x).
   apply explode_bits. auto. rewrite H8. mysimp.
-  apply non_cflow_parser_subset. auto. intros.
+   
+  eapply non_cflow_parser_subset. auto. intros.
   specialize (H2 (List.map byte2token ts3) (List.map byte2token ts4)).
   repeat rewrite map_length in H2. specialize (H2 H9).
   rewrite <- map_app in H10. rewrite <- H in H10.
@@ -895,6 +552,8 @@ Proof.
   repeat pinv. eapply Alt_left_pi ; eauto. eapply Alt_right_pi ; eauto.
 Qed.
 
+  Lemma X t (p1 p2:parser t) s v:in_parser (alts (dnf p1 ++ dnf p2)) s v -> in_parser (Alt_p p1 p2) s v.
+    Admitted.
 Lemma dnf_corr2 t (p:parser t) s v :
   in_parser (alts (dnf p)) s v -> 
   star_free p = true -> 
@@ -905,9 +564,26 @@ Proof.
   induction l ; simpl ; unfold never in * ; intros ; repeat pinv.
   generalize (in_app_alts _ _ H). clear H ; intros. destruct H.
   clear IHl. induction l0 ; simpl in * ; unfold never in * ; pinv.
-  destruct H. pinv. econstructor. eapply IHp1 ; eauto. eapply Alt_left_pi. eauto.
-  eapply IHp2 ; eauto. eapply Alt_left_pi. eauto. auto. auto.
-  eapply IHl0. intros. eapply IHp2. eapply Alt_right_pi. eauto. auto. auto.
+  destruct H. pinv. econstructor. eapply IHp1 ; eauto.
+
+  eapply IHp2 ; eauto.  eauto. auto. auto.
+  eapply IHl. intros. eapply IHp1. eapply Alt_right_pi. eauto. auto. auto.
+
+
+  intros. eapply IHp2. eapply H0. auto.
+
+  apply H.
+  unfold alts in H.
+  apply X.
+  unfold alt in H.
+  Print dnf.
+  unfold alts in H.
+  induction dnf in H.
+  simpl in H.
+  unfold dnf in H.
+  apply dnf_corr1 in H.
+  SearchAbout dnf.
+  
   eapply IHl. intros. eapply IHp1. eapply Alt_right_pi ; eauto. auto. 
   eapply IHp2. auto. generalize (in_app_alts _ _ H). intros. pinv ; eauto.
   generalize (dnf p) IHp H ; clear IHp H. induction l ; simpl ; unfold never ; 

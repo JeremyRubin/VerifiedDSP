@@ -43,7 +43,9 @@ Module Type MACHINE_SIG.
   (** And operations for reading/writing locations *)
   Variable get_location : forall s, location s -> mach_state -> Word.int s.
   Variable set_location : forall s, location s -> Word.int s -> mach_state -> mach_state.
-
+  Variable trace_type :Type.
+  Variable get_trace: mach_state -> list trace_type.
+  Variable add_trace: trace_type -> mach_state -> mach_state.
 End MACHINE_SIG.
 
 (** Generic register-transfer language *)    
@@ -95,7 +97,7 @@ Module RTL(M : MACHINE_SIG).
   Inductive pseudo_reg (s:nat) : Set := 
   | ps_reg : Z -> pseudo_reg s.
 
-  Inductive rtl_instr : Set := 
+  Inductive rtl_instr : Type := 
   | arith_rtl : forall s (b:bit_vector_op)(r1 r2:pseudo_reg s)(rd:pseudo_reg s), rtl_instr
   | test_rtl : forall s (top:test_op)(r1 r2:pseudo_reg s)(rd:pseudo_reg size1), rtl_instr
   | if_rtl : pseudo_reg size1 -> rtl_instr -> rtl_instr
@@ -107,6 +109,7 @@ Module RTL(M : MACHINE_SIG).
   | set_byte_rtl: forall (rs:pseudo_reg size8)(addr:pseudo_reg size_addr), rtl_instr
   | get_byte_rtl: forall (addr:pseudo_reg size_addr)(rd:pseudo_reg size8), rtl_instr
   | choose_rtl : forall s (rd:pseudo_reg s), rtl_instr
+  | add_trace_rtl : forall (t:trace_type), rtl_instr
   | error_rtl : rtl_instr
   | safe_fail_rtl : rtl_instr.
 
@@ -180,6 +183,13 @@ Module RTL(M : MACHINE_SIG).
     fun rs => (Okay_ans tt, {| rtl_oracle := rtl_oracle rs ; 
                            rtl_env := rtl_env rs ; 
                            rtl_mach_state := set_location l v (rtl_mach_state rs) ; 
+                           rtl_code := rtl_code rs ; 
+                           rtl_memory := rtl_memory rs |}).
+
+  Definition add_tr (t : trace_type) : RTL unit := 
+    fun rs => (Okay_ans tt, {| rtl_oracle := rtl_oracle rs ; 
+                           rtl_env := rtl_env rs ; 
+                           rtl_mach_state := add_trace t (rtl_mach_state rs) ; 
                            rtl_code := rtl_code rs ; 
                            rtl_memory := rtl_memory rs |}).
   Definition set_byte (addr:int size_addr) (v:int size8) : RTL unit := 
@@ -257,6 +267,7 @@ Module RTL(M : MACHINE_SIG).
       | set_byte_rtl rs addr => v <- get_ps rs ; a <- get_ps addr ; set_byte a v
       | get_byte_rtl addr rd => a <- get_ps addr ; v <- get_byte a ; set_ps rd v
       | choose_rtl s rd => v <- choose_bits s ; set_ps rd v
+      | add_trace_rtl a => add_tr a
       | error_rtl => Fail unit
       | safe_fail_rtl => SafeFail unit
     end.

@@ -22,71 +22,72 @@ Local Open Scope Z_scope.
 
 (** * Data structures *)
 Require Coq.Sets.Ensembles.
-Definition Int32Ensemble := Ensembles.Ensemble int32.
-Definition w32add := @Word.add 31.
-Definition w32sub := @Word.sub 31.
-Definition w32neg := @Word.neg 31.
-Notation w32modulus := (modulus 31).
+Definition Int8Ensemble := Ensembles.Ensemble int8.
+Definition w8add := @Word.add 7.
+Definition w8sub := @Word.sub 7.
+Definition w8neg := @Word.neg 7.
+Notation w8modulus := (modulus 7).
 
 (** * Abbreviations *)
-Infix "+32" := w32add (at level 50, left associativity).
-Notation "i +32_z z" := (i +32 (repr z))
+Infix "+8" := w8add (at level 50, left associativity).
+Infix "+8" := w8add (at level 50, left associativity).
+Notation "i +8_z z" := (i +8 (repr z))
   (at level 50, left associativity).
-Notation "i +32_p p" := (i +32 (repr (Zpos p)))
+Notation "i +8_p p" := (i +8 (repr (Zpos p)))
   (at level 50, left associativity).
-Notation "i +32_n n" := (i +32 (repr (Z_of_nat n)))
-  (at level 50, left associativity).
-
-Infix "-32" := w32sub (at level 50, left associativity).
-Notation "i -32_z z" := (i -32 (repr z))
-  (at level 50, left associativity).
-Notation "i -32_p p" := (i -32 (repr (Zpos p)))
-  (at level 50, left associativity).
-Notation "i -32_n n" := (i -32 (repr (Z_of_nat n)))
+Notation "i +8_n n" := (i +8 (repr (Z_of_nat n)))
   (at level 50, left associativity).
 
-Notation "-32" := w32neg (at level 35, right associativity).
+Infix "-8" := w8sub (at level 50, left associativity).
+Notation "i -8_z z" := (i -8 (repr z))
+  (at level 50, left associativity).
+Notation "i -8_p p" := (i -8 (repr (Zpos p)))
+  (at level 50, left associativity).
+Notation "i -8_n n" := (i -8 (repr (Z_of_nat n)))
+  (at level 50, left associativity).
 
-Notation int32_zero := (@Word.zero 31).
-(*Notation int32_max := (@repr 31 (Word.max_unsigned 31))*)
-Notation int32_max := (@Word.mone 31).
-Notation int32_of_nat n := (@repr 31 (Z_of_nat n)).
+Notation "-8" := w8neg (at level 35, right associativity).
 
-Definition int32_ltu_bool := @Word.ltu 31.
-Definition int32_eq_bool := @Word.eq 31.
-Definition int32_lequ_bool := @Word.lequ 31.
-Definition int32_gtu_bool i1 i2 := (int32_ltu_bool i2 i1).
-Definition int32_gequ_bool i1 i2 := (int32_lequ_bool i2 i1).
+Notation int8_zero := (@Word.zero 7).
+(*Notation int8_max := (@repr 7 (Word.max_unsigned 7))*)
+Notation int8_max := (@Word.mone 7).
+Notation int8_of_nat n := (@repr 7 (Z_of_nat n)).
 
-Notation "i1 =32 i2" := (int32_eq_bool i1 i2 = true) (at level 70).
-Notation "i1 <>32 i2" := (int32_eq_bool i1 i2 = false) (at level 70).
-Notation "i1 <32 i2" := (int32_ltu_bool i1 i2 = true) (at level 70).
-Notation "i1 <=32 i2" := (int32_lequ_bool i1 i2 = true) (at level 70).
-Notation "i1 >32 i2" := (int32_gtu_bool i1 i2 = true) (at level 70).
-Notation "i1 >=32 i2" := (int32_gequ_bool i1 i2 = true) (at level 70).
+Definition int8_ltu_bool := @Word.ltu 7.
+Definition int8_eq_bool := @Word.eq 7.
+Definition int8_lequ_bool := @Word.lequ 7.
+Definition int8_gtu_bool i1 i2 := (int8_ltu_bool i2 i1).
+Definition int8_gequ_bool i1 i2 := (int8_lequ_bool i2 i1).
+
+Notation "i1 =8 i2" := (int8_eq_bool i1 i2 = true) (at level 70).
+Notation "i1 <>8 i2" := (int8_eq_bool i1 i2 = false) (at level 70).
+Notation "i1 <8 i2" := (int8_ltu_bool i1 i2 = true) (at level 70).
+Notation "i1 <=8 i2" := (int8_lequ_bool i1 i2 = true) (at level 70).
+Notation "i1 >8 i2" := (int8_gtu_bool i1 i2 = true) (at level 70).
+Notation "i1 >=8 i2" := (int8_gequ_bool i1 i2 = true) (at level 70).
 
 (** * Basic lemmas *)
 
-Lemma add32_zero_r : forall i, i +32_n 0 = i.
+Lemma add8_zero_r : forall i, i +8_n 0 = i.
 Proof. simpl. apply add_zero. Qed.
 
-Lemma int32_modulus_constant:
-  w32modulus = 4294967296.
+Lemma int8_modulus_constant:
+  w8modulus = 256.
 Proof. unfold modulus. unfold Word.wordsize.
   trivial.
 Qed.
 
-Lemma int32_eq_rewrite :
-  forall i1 i2, i1 = i2 -> i1 =32 i2.
+Lemma int8_eq_rewrite :
+  forall i1 i2, i1 = i2 -> i1 =8 i2.
 Proof. apply int_eq_true_iff2. Qed.
 
-Lemma int32_neq_rewrite :
-  forall i1 i2, i1 <> i2 -> i1 <>32 i2.
+Lemma int8_neq_rewrite :
+  forall i1 i2, i1 <> i2 -> i1 <>8 i2.
 Proof. apply int_eq_false_iff2. Qed.
 
-Lemma int32_minus_rewrite : forall x y,
-  unsigned x >= unsigned y -> unsigned (x -32 y) = unsigned x - unsigned y.
-Proof. intros. unfold w32sub, sub. rewrite unsigned_repr2. trivial. 
+Lemma int8_minus_rewrite : forall x y,
+  unsigned x >= unsigned y -> unsigned (x -8 y) = unsigned x - unsigned y.
+Proof. intros. unfold w8sub, sub. rewrite unsigned_repr2. trivial. 
   generalize (unsigned_range x), (unsigned_range y). lia.
 Qed.
 
@@ -97,13 +98,13 @@ Proof. intros.
   apply Zmod_0_l.
 Qed.
 
-Lemma int32_plus_eq_zero : forall x y, x = x +32 y -> y = int32_zero.
+Lemma int8_plus_eq_zero : forall x y, x = x +8 y -> y = int8_zero.
 Proof. intros x y Hc.
   destruct x as [xv Hx]. destruct y as [yv Hy].
   unfold Word.add, repr in Hc. simpl in Hc.
   injection Hc. intro H4.
   apply mkint_eq.
-  assert (xv = xv mod w32modulus) as H6. 
+  assert (xv = xv mod w8modulus) as H6. 
     apply eq_sym. apply Zmod_small. assumption.
   rewrite H6 in H4 at 1.
   apply eq_sym in H4. apply Zmod_plus_eq_self in H4.
@@ -111,25 +112,25 @@ Proof. intros x y Hc.
   rewrite Zmod_0_l. trivial.
 Qed.
 
-(** ** Tactics for int32 *)
+(** ** Tactics for int8 *)
 
-(** Convert operations on int32 to operations on Z *)
+(** Convert operations on int8 to operations on Z *)
 
-(* converting x=y to unsigned x = unsigned y, when x and y are of type int32 *)
-Ltac elim_int32_eq := 
+(* converting x=y to unsigned x = unsigned y, when x and y are of type int8 *)
+Ltac elim_int8_eq := 
   repeat match goal with
     | [H: ?X = ?Y |- _] =>
       match type of X with
-        | int 31 => assert (unsigned X = unsigned Y) by congruence; clear H
+        | int 7 => assert (unsigned X = unsigned Y) by congruence; clear H
         | _ => idtac
       end
   end.
 
-Ltac int32_to_Z_tac :=  
-  unfold int32_gtu_bool, int32_gequ_bool, 
-    int32_lequ_bool, int32_ltu_bool, int32_eq_bool in *;
+Ltac int8_to_Z_tac :=  
+  unfold int8_gtu_bool, int8_gequ_bool, 
+    int8_lequ_bool, int8_ltu_bool, int8_eq_bool in *;
   autorewrite with int_to_Z in *; 
-  elim_int32_eq.
+  elim_int8_eq.
 
 (** convert nat to Z *)
 Hint Rewrite inj_plus inj_mult : nat_to_Z.
@@ -186,57 +187,57 @@ Ltac Z_to_nat_in_goal := autorewrite with Z_to_nat.
 Ltac Z_to_nat_in H := autorewrite with Z_to_nat in H.
   
 (** * Definition and properties of noOverflow *)
-Definition addZ_list (l:list int32) : Z := 
-  List.fold_right (fun (a:int32) (z:Z) => unsigned a + z) 0 l.
+Definition addZ_list (l:list int8) : Z := 
+  List.fold_right (fun (a:int8) (z:Z) => unsigned a + z) 0 l.
 
-(** A semantic definition that adding a list of int32s does not overflow *)
-Definition noOverflow (l:list int32) : Prop := addZ_list l < w32modulus.
+(** A semantic definition that adding a list of int8s does not overflow *)
+Definition noOverflow (l:list int8) : Prop := addZ_list l < w8modulus.
 
 Ltac noOverflow_simpl := 
   unfold noOverflow; cbv [addZ_list List.fold_right].
 Ltac noOverflow_simpl_in H :=
   unfold noOverflow in H; cbv [addZ_list List.fold_right] in H.
 
-(** Check a +32 b does not overflow; it is equivalent to a + b < 2^32 
-    and also equivalent to a +32 b = a + b; this formulation is easy to 
+(** Check a +8 b does not overflow; it is equivalent to a + b < 2^8 
+    and also equivalent to a +8 b = a + b; this formulation is easy to 
     convert to checks in real programs. *)
-Definition checkNoOverflow (a b:int32) : bool :=
-  int32_lequ_bool a (a +32 b).
+Definition checkNoOverflow (a b:int8) : bool :=
+  int8_lequ_bool a (a +8 b).
 
 (** ** Properties of noOverflow *)
 Lemma checkNoOverflow_equiv_noOverflow : forall a b,
   checkNoOverflow a b = true <-> noOverflow (a :: b :: nil).
 Proof. intros; generalize (unsigned_range a), (unsigned_range b); 
   intros Ha Hb; unfold checkNoOverflow, noOverflow; split.
-  intros. int32_to_Z_tac. simpl. rewrite Zplus_0_r.
+  intros. int8_to_Z_tac. simpl. rewrite Zplus_0_r.
     apply Znot_ge_lt; intro Hc.
-    unfold "+32", repr in H. simpl in H.
-    assert ((unsigned a + unsigned b) mod w32modulus = 
-              unsigned a + unsigned b - w32modulus) as H5.
+    unfold "+8", repr in H. simpl in H.
+    assert ((unsigned a + unsigned b) mod w8modulus = 
+              unsigned a + unsigned b - w8modulus) as H5.
       apply Coqlib.Zmod_unique with (a:=1) ; lia.
     rewrite H5 in H. lia.
   intros. simpl in H. rewrite Zplus_0_r in H.
-    int32_to_Z_tac. unfold "+32", repr. simpl.
-    assert (0 <= unsigned a + unsigned b < w32modulus) by lia.
+    int8_to_Z_tac. unfold "+8", repr. simpl.
+    assert (0 <= unsigned a + unsigned b < w8modulus) by lia.
     rewrite (Zmod_small _ _ H0). lia.
 Qed.
 
 Lemma noOverflow_2_iff : forall a b, 
-  noOverflow (a::b::nil) <-> unsigned (a +32 b) = unsigned a + unsigned b.
+  noOverflow (a::b::nil) <-> unsigned (a +8 b) = unsigned a + unsigned b.
 Proof. intros; generalize (unsigned_range a), (unsigned_range b); 
-  intros Ha Hb; unfold noOverflow; split; unfold "+32", repr; simpl.
+  intros Ha Hb; unfold noOverflow; split; unfold "+8", repr; simpl.
   intros. apply Zmod_small. simpl in H.
     lia.
   intros. 
-    assert (0 <= unsigned a + unsigned b < w32modulus).
+    assert (0 <= unsigned a + unsigned b < w8modulus).
       rewrite <- H; apply Z_mod_lt. apply Word.modulus_pos.
     lia.
 Qed.
 
-Lemma int32_add_rewrite : forall (a b:int32),
-  unsigned a + unsigned b < w32modulus
-    -> unsigned (a +32 b) = unsigned a + unsigned b.
-Proof. intros. unfold "+32", repr. simpl.
+Lemma int8_add_rewrite : forall (a b:int8),
+  unsigned a + unsigned b < w8modulus
+    -> unsigned (a +8 b) = unsigned a + unsigned b.
+Proof. intros. unfold "+8", repr. simpl.
   generalize (unsigned_range a) (unsigned_range b); intros.
   rewrite Zmod_small by lia. trivial.
 Qed.
@@ -253,7 +254,7 @@ Ltac checkNoOverflow_elim :=
          end.
 
 (* For any occurence of "unsigned x" in the context, add the 
-   assumption (0 <= unsigned x < 2^32)*)
+   assumption (0 <= unsigned x < 2^8)*)
 Ltac add_unsigned_rng_tac :=
   repeat match goal with
            | [H:context[unsigned ?X] |- _] =>
@@ -271,56 +272,56 @@ Hint Rewrite Zpos_plus_distr : pos_to_Z_db.
 
 Ltac all_to_Z_tac :=
   unfold noOverflow in *; cbv [addZ_list List.fold_right] in *;
-  int32_to_Z_tac; add_unsigned_rng_tac; nat_to_Z_tac; pos_to_Z_tac;
-  unfold RTL.size32 in *.
+  int8_to_Z_tac; add_unsigned_rng_tac; nat_to_Z_tac; pos_to_Z_tac;
+  unfold RTL.size8 in *.
 
-Ltac int32_simplify := all_to_Z_tac; repeat autorewrite with int32_simpl_db in *.
-Ltac int32_prover := int32_simplify; lia.
+Ltac int8_simplify := all_to_Z_tac; repeat autorewrite with int8_simpl_db in *.
+Ltac int8_prover := int8_simplify; lia.
 
-Ltac int32_simplify_in_goal := 
-  nat_to_Z_in_goal; autorewrite with int32_simpl_db.
-Ltac int32_simplify_in H := 
-  nat_to_Z_in H; autorewrite with int32_simpl_db in H.
+Ltac int8_simplify_in_goal := 
+  nat_to_Z_in_goal; autorewrite with int8_simpl_db.
+Ltac int8_simplify_in H := 
+  nat_to_Z_in H; autorewrite with int8_simpl_db in H.
 
 (** A rewrite tactic that
     (1) rewrites to (unsigned a + unsigned b) when
-        (unsigned a + unsigned b < 2^32 holds
-    (3) rewrites unsigned (repr z) to z when 0 <= z < 2^32 *)
-Hint Rewrite int32_add_rewrite using (lia || (int32_simplify_in_goal; lia))
-  : int32_simpl_db.
-Hint Rewrite int32_minus_rewrite using lia : int32_simpl_db.
-Hint Rewrite Word.unsigned_repr2 using lia : int32_simpl_db.
+        (unsigned a + unsigned b < 2^8 holds
+    (3) rewrites unsigned (repr z) to z when 0 <= z < 2^8 *)
+Hint Rewrite int8_add_rewrite using (lia || (int8_simplify_in_goal; lia))
+  : int8_simpl_db.
+Hint Rewrite int8_minus_rewrite using lia : int8_simpl_db.
+Hint Rewrite Word.unsigned_repr2 using lia : int8_simpl_db.
 
 (** ** More lemmas about noOverflow *)
-Lemma checkNoOverflow_3_sound : forall (a b c:int32),
-  checkNoOverflow a b = true -> checkNoOverflow (a +32 b) c = true
+Lemma checkNoOverflow_3_sound : forall (a b c:int8),
+  checkNoOverflow a b = true -> checkNoOverflow (a +8 b) c = true
     -> noOverflow (a::b::c::nil).
-Proof. intros. checkNoOverflow_elim. int32_prover. Qed.
+Proof. intros. checkNoOverflow_elim. int8_prover. Qed.
 
 (** * addrRegion *)
 
-Definition addrRegion (start limit:int32):Int32Ensemble :=
-  fun x:int32 => exists i:int32, x = start +32 i /\ i <=32 limit.
+Definition addrRegion (start limit:int8):Int8Ensemble :=
+  fun x:int8 => exists i:int8, x = start +8 i /\ i <=8 limit.
 
 Lemma addrRegion_start_in : forall start limit, 
   Ensembles.In _ (addrRegion start limit) start.
 Proof. autounfold with sets. intros.
   unfold addrRegion.
-  exists int32_zero. 
-  split. rewrite add32_zero_r. trivial.
+  exists int8_zero. 
+  split. rewrite add8_zero_r. trivial.
   apply Word.int_lequ_zero.
 Qed.
 
 (** * disjointRegions *)
 (** Check region [start1, start1+limit1] is disjoint from 
     [start2, start2+limit2]; For simplicity, neither region can wrap
-    around the 32-bit address space. *)
-Definition disjointRegions (start1 limit1 start2 limit2:int32) : bool :=
-  (int32_ltu_bool (start1 +32 limit1) start2 ||
-   int32_ltu_bool (start2 +32 limit2) start1)%bool.
+    around the 8-bit address space. *)
+Definition disjointRegions (start1 limit1 start2 limit2:int8) : bool :=
+  (int8_ltu_bool (start1 +8 limit1) start2 ||
+   int8_ltu_bool (start2 +8 limit2) start1)%bool.
 
 Lemma disjointRegions_sound :
-  forall (s1 l1 s2 l2:int32),
+  forall (s1 l1 s2 l2:int8),
     checkNoOverflow s1 l1 = true 
       -> checkNoOverflow s2 l2 = true
       -> disjointRegions s1 l1 s2 l2 = true 
@@ -330,7 +331,7 @@ Proof. intros. split; intros. autounfold with sets. intro Hc.
   unfold disjointRegions in H1.
   checkNoOverflow_elim.
   rewrite H10 in H12; clear H10.
-  bool_elim_tac; int32_prover.
+  bool_elim_tac; int8_prover.
 Qed.
 
 (** * Some properties about ensembles *)
