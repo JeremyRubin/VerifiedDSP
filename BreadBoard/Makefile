@@ -1,4 +1,4 @@
-MODULES := Wiring IOModule Component Common Run Breadboard
+MODULES := Wiring IOModule Component Common Run Breadboard Theorems
 # DFACorrectness FastVerifier i8051Lemmas VerifierCorrectness
 VS 	:= $(MODULES:%=%.v)
 

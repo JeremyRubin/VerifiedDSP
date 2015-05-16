@@ -1,4 +1,19 @@
 
+Require Import String.
+Require Import Ascii.
+Require Import List.
+Require Import ListSet.
+Require Import EqNat.
+Import ListNotations.
+Require Import Arith.
+Open Scope list_scope.
+Open Scope string_scope.
+Require Import Run.
+Import Wires.
+Require Import Breadboard.
+Import IORUN.
+Require Import IOModule.
+Import IO.
 Theorem good_build : valid_wiring (demo1 ~&~ demo2).
 Proof. 
   autowire.
@@ -10,6 +25,7 @@ Proof.
 Qed.
 
 Compute (find_trace 10 (run (demo1 ~&~ demo2) 10)).
+
 Theorem no_modify_history_update: forall pin_tr upd n,
                                     let a := (find_trace n (update_trace pin_tr upd [])) in
                                     let b := find_trace n pin_tr in
