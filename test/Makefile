@@ -1,7 +1,7 @@
-SDCCCFLAGS = --model-small
+SDCCCFLAGS = --model-small  --no-c-code-in-asm
 
 
-ASLINKFLAGS = --code-loc 0x2000 --data-loc 0x30 --stack-after-data --xram-loc 0x6000
+ASLINKFLAGS = --code-loc 0x00 --data-loc 0x0 --stack-after-data --xram-loc 0x000
 
 %.rel : %.c %.h
 	sdcc $(SDCCCFLAGS) -c $<
