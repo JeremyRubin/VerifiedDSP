@@ -72,31 +72,14 @@ Module c8051.
     rtl_memory := AddrMap.init (Word.repr 0);
     rtl_code := CodeMap.init (Word.repr 0)
   |} init.
+  Definition computeitString cycle init := 
+    match ihx_to_byte_assoc_line (asciis init) None (Some nil) with
+      | Some bytes => computeit cycle  (load_code_bytes bytes)
+      | None => computeit cycle (load_code_bytes nil)
+      end.
 
-  Definition t := (computeit 1).
 End c8051.
 
-Require Import Ascii.
- Definition prg_line : list (list ascii):=
-   (map asciis (":03000000020006F5"%string::
-":03005F0002000399"%string::
-":0300030002006296"%string::
-":07006200C300D3020062227B"%string::
-":06003500E478FFF6D8FD9F"%string::
-":200013007900E94400601B7A0090006D780075A000E493F2A308B8000205A0D9F4DAF27527"%string::
-":02003300A0FF2C"%string::
-":20003B007800E84400600A790075A000E4F309D8FC7800E84400600C7900900000E4F0A3C5"%string::
-":04005B00D8FCD9FAFA"%string::
-":0D000600758107120069E5826003020003A6"%string::
-":04006900758200227A"%string::
-":00000001FF"%string::nil)).
-Definition bytes := (ihx_to_byte_assoc_line (line_to_program prg_line)
-              None (Some nil)).
 
- Definition mainFN (t:unit) :=
-   match bytes with
-       | Some bytes => c8051.computeit 10 (load_code_bytes bytes)
-       | None => None
-                   end.
 Extraction Language Ocaml.
-Extraction "extract/test.ml" mainFN.  
+Extraction "extract/test.ml" c8051.  
