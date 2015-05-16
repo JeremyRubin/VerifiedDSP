@@ -42,7 +42,7 @@ Definition oracle := {|
     rtl_code := CodeMap.init (Word.repr 0)
   |}. 
   
-Module c8051.
+Module i8051_Component.
   (* Variable threshold : nat. *)
   Definition threshold := 1.
   Search nat.
@@ -78,8 +78,5 @@ Module c8051.
       | None => computeit cycle (load_code_bytes nil)
       end.
 
-End c8051.
+End i8051_Component.
 
-
-Extraction Language Ocaml.
-Extraction "extract/test.ml" c8051.  

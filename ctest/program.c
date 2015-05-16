@@ -1,7 +1,7 @@
 void main() {
     __asm
         loop:
-        clr C
+        /* clr C */
         nop
         setb C
         ljmp loop
