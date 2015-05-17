@@ -501,16 +501,20 @@ Definition step : RTL unit :=
           run_rep  instr default_new_pc.
 Check set_byte.
 Check get_byte.
-Fixpoint nsteps fuel (l:loc size8) : RTL (int size8):=
+Fixpoint nsteps fuel (l:loc size8) : RTL (ports):=
   match fuel with
     | O =>
-      get_byte (Word.repr Alias.P3)
+      d <- get_byte (Word.repr Alias.P3);
+      b <- get_byte (Word.repr Alias.P2);
+      c <- get_byte (Word.repr Alias.P1);
+      a <- get_byte (Word.repr Alias.P0);
+      ret {|P0:=a;P1:=b;P2:=c;P3:=d|}
     | S n => step;; nsteps n l
   end.
-Definition nsteps_init (init: RTL unit) fuel (l:loc size8) : RTL (int size_addr) :=
+Definition nsteps_init (init: RTL unit) fuel (l:loc size8) : RTL (ports) :=
   init;;
   nsteps fuel l.
-Definition dump_state n s (init: RTL unit) : option (int size_addr) :=
+Definition dump_state n s (init: RTL unit) : option (ports) :=
       match nsteps_init init n  P3_loc s with
         | (Okay_ans v, rs') => Some v
         | (Fail_ans, rs') => None
