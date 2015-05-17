@@ -238,23 +238,20 @@ Module i8051_Decode.
     end.
 
   Local Open Scope Z_scope.
-  Definition valid_bit_addr := map (@Word.repr size8) (flat_map
-                                (fun x => x+8::x+7::x+6::x+5::x+4::x+3::x+2::x+1::x::nil)
-                                   (hF0::hE0::hD0::hC8::hB8::hB0::
-    hA8::hA0::h98::h90::h88::h80::nil)).
+  Definition valid_bit_addr :=
+    let aligned_bit_addrs := hF0::hE0::hD0::hC8::hB8::hB0::hA8::hA0::h98::h90::h88::h80::nil in
+    let mk_unaligned_bit_addrs := (fun x => x+8::x+7::x+6::x+5::x+4::x+3::x+2::x+1::x::nil) in
+    map (@Word.repr size8) (flat_map mk_unaligned_bit_addrs aligned_bit_addrs).
   Local Close Scope Z_scope.
   Definition is_valid_bit_addr baddr :=
     let prop := (fun s => Word.eq s baddr ) in
-    match find  prop valid_bit_addr with
-      | Some _ => true
-      | Nothing => false
-      end.
+     existsb prop valid_bit_addr.
   Definition conv_SETB (op1:operand) : Conv unit :=
     match op1 with
         | Bit_op (bit_addr baddr) =>
           if is_valid_bit_addr baddr then
-            let addr := Word.and baddr (Word.repr  3) in
-            let bsel := Word.and baddr (Word.not (Word.repr 3)) in
+            let bsel := Word.and baddr (Word.repr  3) in
+            let addr := Word.and baddr (Word.not (Word.repr 3)) in
             let ormask := Word.shl (Word.repr 1) bsel in
             ormaskReg <- load_int ormask;
             a <- load_int addr;
@@ -270,8 +267,8 @@ Module i8051_Decode.
     match op1 with
         | Bit_op (bit_addr baddr) =>
           if is_valid_bit_addr baddr then
-            let addr := Word.and baddr (Word.repr  3) in
-            let bsel := Word.and baddr (Word.not (Word.repr 3)) in
+            let bsel := Word.and baddr (Word.repr  3) in
+            let addr := Word.and baddr (Word.not (Word.repr 3)) in
             let andmask := Word.not (Word.shl (Word.repr 1) bsel) in
             andmaskReg <- load_int andmask;
             a <- load_int addr;
@@ -502,12 +499,12 @@ Definition step : RTL unit :=
     [instr,length] <- fetch_instruction pc ; 
     let default_new_pc := Word.add pc (Word.repr (Zpos length)) in
           run_rep  instr default_new_pc.
-Check step.
+Check set_byte.
+Check get_byte.
 Fixpoint nsteps fuel (l:loc size8) : RTL (int size8):=
   match fuel with
     | O =>
-      r <- get_loc l ; 
-      ret r
+      get_byte (Word.repr Alias.P3)
     | S n => step;; nsteps n l
   end.
 Definition nsteps_init (init: RTL unit) fuel (l:loc size8) : RTL (int size_addr) :=
