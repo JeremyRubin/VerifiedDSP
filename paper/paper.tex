@@ -1,0 +1,512 @@
+%-----------------------------------------------------------------------------
+%
+%               Template for sigplanconf LaTeX Class
+%
+% Name:         sigplanconf-template.tex
+%
+% Purpose:      A template for sigplanconf.cls, which is a LaTeX 2e class
+%               file for SIGPLAN conference proceedings.
+%
+% Guide:        Refer to "Author's Guide to the ACM SIGPLAN Class,"
+%               sigplanconf-guide.pdf
+%
+% Author:       Paul C. Anagnostopoulos
+%               Windfall Software
+%               978 371-2316
+%               paul@windfall.com
+%
+% Created:      15 February 2005
+%
+%-----------------------------------------------------------------------------
+
+
+\documentclass[preprint,11pt]{sigplanconf}
+
+% The following \documentclass options may be useful:
+
+% preprint      Remove this option only once the paper is in final form.
+% 10pt          To set in 10-point type instead of 9-point.
+% 11pt          To set in 11-point type instead of 9-point.
+% authoryear    To obtain author/year citation style instead of numeric.
+
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+\definecolor{mygray2}{rgb}{0.95,0.95,0.95}
+
+\lstset{ %
+  backgroundcolor=\color{mygray2},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+  basicstyle=\footnotesize,        % the size of the fonts that are used for the code
+  breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
+  breaklines=true,                 % sets automatic line breaking
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{mygreen},    % comment style
+  deletekeywords={...},            % if you want to delete keywords from the given language
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+  %% frame=single,                    % adds a frame around the code
+  keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+  keywordstyle=\color{blue},       % keyword style
+  language=Octave,                 % the language of the code
+  morekeywords={*,...},            % if you want to add more keywords to the set
+  numbers=none,                    % where to put the line-numbers; possible values are (none, left, right)
+  numbersep=5pt,                   % how far the line-numbers are from the code
+  numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+  rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+  showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+  showstringspaces=false,          % underline spaces within strings only
+  showtabs=false,                  % show tabs within strings adding particular underscores
+  stepnumber=2,                    % the step between two line-numbers. If it's 1, each line will be numbered
+  stringstyle=\color{mymauve},     % string literal style
+  tabsize=2,                       % sets default tabsize to 2 spaces
+  title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+%%
+%% Coq definition (c) 2001 Guillaume Dufay
+%% <Guillaume.Dufay@sophia.inria.fr>
+%% with some modifications by J. Charles (2005)
+%%
+\lstdefinelanguage{Coq}%
+                  {morekeywords={Variable,Inductive,CoInductive,Fixpoint,CoFixpoint,%
+                      Definition,Example,Lemma,Theorem,Axiom,Local,Save,Grammar,Syntax,Intro,%
+                      Trivial,Qed,Intros,Symmetry,Simpl,Rewrite,Apply,Elim,Assumption,%
+                      Left,Cut,Case,Auto,Unfold,Exact,Right,Hypothesis,Pattern,Destruct,%
+                      Constructor,Defined,Fix,Record,Print,Proof,Induction,Hint,Hints,Exists,
+                      let,in,Parameter,Split,Red,Reflexivity,Transitivity,if,then,else,Opaque,%
+                      Transparent,Inversion,Absurd,Generalize,Mutual,Cases,of,end,Analyze,%
+                      AutoRewrite,Functional,Scheme,params,Refine,using,Discriminate,Try,%
+                      Require,Load,Import,Scope,Set,Open,Section,End,match,with,Ltac,%
+                      exists,forall,fix,fun
+                    },%
+                    sensitive, %
+                    morecomment=[n]{(*}{*)},%
+                    morestring=[d]'',%
+                    literate={=>}{{$\Rightarrow$}}1 {>->}{{$\rightarrowtail$}}2{->}{{$\to$}}1
+                    {\/\\}{{$\wedge$}}1
+                    {|-}{{$\vdash$}}1
+                    {\\\/}{{$\vee$}}1
+                    {~}{{$\sim$}}1
+                    %{<>}{{$\neq$}}1 indeed... no.
+                  }[keywords,comments,strings]%
+
+
+\begin{document}
+
+\special{papersize=8.5in,11in}
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\conferenceinfo{6.888 '15}{March 19, 2015, Cambridge, MA, U.S.A.} 
+\copyrightyear{2015} 
+\copyrightdata{978-1-nnnn-nnnn-n/15/03} 
+\doi{nnnnnnn.nnnnnnn}
+
+% Uncomment one of the following two, if you are not going for the 
+% traditional copyright transfer agreement.
+
+%\exclusivelicense                % ACM gets exclusive license to publish, 
+                                  % you retain copyright
+
+%\permissiontopublish             % ACM gets nonexclusive license to publish
+                                  % (paid open-access papers, 
+                                  % short abstracts)
+
+\titlebanner{6.888: Certified Systems Software 2015}        % These are ignored unless
+
+\preprintfooter{Framework to prove 8-bit embedded
+  software systems on the Intel 8051 series} % 'preprint' option specified.
+
+\title{V-EmRALD}
+\subtitle{Verified Embedded Realtime Assembly Language Description for
+ 8-bit Intel 8051 Semantics}
+
+\authorinfo{Jeremy Rubin}
+ {jlrubin@mit.edu}
+
+\maketitle
+
+\begin{abstract}
+  Microcontrollers are used widely in a wide range of devices and
+  machines.  There are many life critical applications of
+  microcontrollers including medical equipment, transport, and
+  communications. It is therefore of great importance to ensure the
+  proper functionality of such devices. Many microcontrollers are
+  simple, preferring to rely on a tried and true 8-bit architecture
+  without a full operating system so that they may more easily reason
+  about real-time responses to events. For instance, it could be
+  disastrous to have a garbage collection pause while trying to apply
+  the brakes of a car. However, this simplicity comes at a cost;
+  without higher level constructs a programmer must manually write and
+  check a lot more code. Furthermore, it is hard for a programmer to
+  verify that the assembly they wrote is correctly translated into the
+  binary loaded onto chip.
+
+
+  V-EmRALD is a new framework for programming 8-bit Intel 8051 series
+  microcontroller which includes a verified assembler, 8051 simulator, and
+  higher level constructs to help programmers formalize the behavior
+  and run time of control loops. We are currently building the
+  prototype of V-EmRALD.
+\end{abstract}
+
+%% \category{CR-number}{subcategory}{third-level}
+
+% general terms are not compulsory anymore, 
+% you may leave them out
+%% \terms
+%% term1, term2
+
+%% \keywords
+%% keyword1, keyword2
+
+\section{Introduction}
+Modern machines often rely on a combination of mechanical systems,
+electrical systems, sensors, and software. The advent of embedded systems
+has allowed for much more accurate and complicated designs to be built because
+they allow for tighter feedback loops as well as convenient ways to interface
+between disparate systems.
+
+Often times these embedded systems are built with simple
+microcontrollers ($\mu Cs$) such as 8-bit because a more powerful
+computers are not needed, energy-inefficient, and are harder to reason
+about for real-time applications. In some sectors, Real-Time Operating
+Systems (RTOS) have become popular due to programming ease, but there
+are many applications where a lighter weight solution is needed. Many
+systems which require light weight microcontrollers also happen to be
+life-critical. Unfortunately, there have been many instances where the
+life-critical nature of this role was made all too clear with
+catastrophic failures.
+
+V-EmRALD is an effort to reduce the likelihood of programmer errors as
+well as toolchain errors when working with 8-bit Intel 8051 series
+microcontrollers. This chip was chosen because the author is familiar
+with them and they are very widely deployed. V-EmRALD, once
+implemented, will be composed of a trusted simulator, a verified
+assembler, and the utilities which assist programmers in formally
+reason about behavior of control loop programs. Behavior can be
+characterized by several properties: return values, execution time,
+pin output, and non interference. Return values are defined as a
+separation logic over assembly chunks. The basic notion would be that
+after execution between two labels, some properties are
+preserved. V-EmRALD will initially target a simplified separation
+logic which for many embedded applications is enough. This logic will
+be solely be based on register restoring after calls and writing to a
+limited space. This restriction can be lifted in the future. Execution
+time will be defined as the number of cycles required to run from a
+label to another label. Pin output will be defined as the state of the
+pins on the chip, and can be modeled as a separation logic as well
+(pins are like memory). There will be special utilities to deal with
+the input and output nature of pins. Non interference statements are
+meta statements on behavior which will capture behavior properties
+based on different input patterns. Examples could include ensuring
+that a single control handler is executed when it is in critical
+modes, a handler is not starved for more than N cycles, or a token for
+control over some IO pins is explicitly passed from handler to
+handler.
+
+This system will have many limitations which may affect its real-world usefulness,
+which will be expounded in the discussion.
+
+\section{Motivation}
+There are several concrete examples of embedded system failures which
+motivate V-EmRALD.
+\subsection{Medical Devices}
+The Therac-25 was a radiation therapy machine which lethally overdosed
+6 people \cite{therac}. While a large portion of the of the blame for
+this could be placed on the lack of hardware failsafes, it was
+ultimately unverified software which caused the deadly malfunction.
+
+Another interesting medical device is the pacemaker. A 2004 study saw
+that approximately 1/1,200 pacemaker re-programmings loaded faulty
+programs onto the device, which could cause a patient's heart rate to
+elevate to 185 beats per minutes. The fault was due to multiple
+timer interrupts being enabled at the same time, when only one was
+supposed to be enabled at any given time \cite{pacemaker}.
+\subsection{Transport}
+Automobiles are also a large concern with regards to embedded systems
+as they rely on multiple for the core functionality of the
+vehicle. Over the past decade, there have been a number of
+bugs and errors caused -- or suspected to be caused -- by faulty
+software.  For instance, several major automobile manufacturers --
+Nissan, Honda, and Subaru -- recalled vehicles for faulty embedded
+systems which could deploy airbags during normal vehicle operation or
+start the car at random while parked \cite{cars}.
+
+\subsection{Communications}
+Networked mobile devices use small hardware secure chips called
+subscriber identification module cards (SIM cards) to reliably
+identify clients connecting to the network. They contain a $\mu C$
+which manages the processing of cellular data, such as encryption and
+signatures for requests from a certain number (such as send a
+text-message). Recently, exploits have been found that allow a remote
+attacker to take control of the SIM card and issue illegitimate
+requests \cite{sim}.
+\section{Related Work}
+Several projects have related goals:
+
+\subsubsection{Bedrock}
+Bedrock is a project which facilitates the formal verification of low
+level code. It is implemented as a Coq Library, but it provides
+significant enough extensions and capabilities that it is more aptly
+described as a language for separation logic. Bedrock provides significant
+instruction on the implementation of a separation logic system\cite{bedrock1}\cite{bedrock2}.
+\subsubsection{Reflex}
+Reflex is a project which makes a verified message passing kernel that
+can interpret a set of user defined rules about non interference and
+causality. Reflex is not intended for embedded systems, but the model
+of non interference and causality is instructive for a style in which
+one might prove properties about an embedded system \cite{reflex}. For example, one
+such property could be that seems natural to try to prove in a Reflex
+style could be that at least 100 cycles pass in between asking for and
+reading a value from an Analog Digital Converter.
+\subsubsection{Correctness Proofs for Device Drivers in Embedded Systems}
+Duan and Regher\cite{drivers} discuss a system which can verify low-level device drivers.
+Their approach allows for separately clocked components interactions to be modeled and verified.
+They use a pre-existing ARMv4 simulator and develop a formal semantics for interacting with UART. Their proofs are all manual,
+and they hope to build proof automation on top of their proofs for UART.
+\subsubsection{RockSalt}
+This effort derives heavily from RockSalt. RockSalt was a project to
+write a formally proven version of Native Client(NaCl), Google's tool
+for generating and checking untrusted binaries which can then be
+safely run with confidence they will never escape the sandbox
+\cite{rocksalt}.
+
+A major part of the RockSalt contribution was an excellent model of
+Register Transfer Language on top of which they modeled MIPS and x86
+processors. The ability to end-to-end check properties of the binary
+is a powerful tool in guaranteeing functional correctness. Their
+effort is very instructive in the implementation of V-EmRALD.
+\subsubsection{Model Checking Software for Microcontrollers}
+This project formally models an 8-bit Atmega microcontroller.
+The project reasons about assembly code, but is designed to have proof
+automation for high level theorems from C, C++, and other programming langauges.
+There does not seem to be facilities for run time verifition \cite{mcsm}.
+
+\section{Overview}
+
+The core of a V-EmRALD checkable program is a single control loop. The
+control loop will be a terminating sequence of 
+polling pins and and handling conditions. All of the handlers can be
+padded out such that the loop takes a constant amount of time. The
+terminating sequence will then be looped forever.
+\begin{lstlisting}[caption={The control loop here first polls port 1, then checks pin 0 and jumps to the appropriate handler.
+      Some more complicated logic is also shown which will handle
+      device 3 if both pin 1 or 2 are high, device 2 if pin 1 is high
+      and pin 2 is low, and device 1 if pin 2 is high and pin 1 is
+      low.},
+  label={lst:ControlLoop}]
+  loop:
+  mov a, P1     
+  jb a.0, HandleDevice0
+  jnb a.1, skip1
+  jb a.2, HandleDevice3
+  ljmp HandleDevice2
+  skip1:
+  jb a.2, HandleDevice1
+  ljmp loop
+\end{lstlisting}
+
+Before running the loop, a trusted prelude -- a small piece of
+assembly -- will turns off 8051 features such as interrupts and
+otherwise set up the $\mu C$.
+
+There will be facilities to prove various properties about assembly.
+
+For example, the above control loop would greatly benefit from proofs
+that the handler priorities are correct.  There are some neat tricks
+which could be used to lighten the proof-burden of pin read non
+determinism. One such trick could be, if the hardware designer knows
+that the pin being read is a trigger, it can be marked as high across
+the entire trace. More nuanced theorems would be required for stateful
+loops.
+\vfill
+\begin{lstlisting}[language=Coq, caption=
+    {A couple examples of theorems are potentially easier to read and
+      reason about then the raw assembly code of control
+      loop in Listing~\ref{lst:ControlLoop}},
+  label={lst:ControlLoopTheorems}]
+
+Theorem ctl_lp_p1_0_hi: forall iotrace,
+  at_all_times iotrace
+  (fun t => read t P1.0 = HIGH) ->
+  elem HandleDevice0
+  (trace prog iotrace) /\
+  !(elem HandleDevice3
+  (trace prog iotrace) \/
+  elem HandleDevice2
+  (trace prog iotrace) \/
+  elem HandleDevice1
+  (trace prog iotrace)))
+
+Theorem ctl_lp_p1_210_hi_lo_lo: forall iotrace,
+  at_all_times iotrace
+  (fun t => read t P1.0 = LOW /\
+  read t P1.1 = LOW /\
+  read t P1.2 = HIGH) ->
+  elem HandleDevice2
+  (trace prog iotrace) /\
+  !(elem HandleDevice0
+  (trace prog iotrace) \/
+  elem HandleDevice3
+  (trace prog iotrace) \/
+  elem HandleDevice1
+  (trace prog iotrace))
+\end{lstlisting}
+
+Theorem ctl\_lp\_p1\_0\_hi in Listing~\ref{lst:ControlLoopTheorems} states that for some user defined program, if P1.0 is high at
+all points, then only device 0 will be handled. A more robust, but
+perhaps more difficult proof would rely on the pin taking on either
+value at all reads, but this may not be accurate given peripheral information.
+Theorems about execution time verification could work by having each
+instruction executed under a trace and adding the number of cycles it
+takes under a trace. The run time can be taken between any two labels
+-- the code between the labels must provably terminate though. For instance, 
+theorems about proper nop padding and runtime length can be shown.
+
+\begin{lstlisting}[language=Coq, caption=
+    {If a segment of code is properly padded then all all executions
+      take the same amount of time. The definition of proper\_padded
+      is omitted, but it performs some branch expansion},
+  label={lst:NopPad}]
+Defintion proper_padded c : bool := ...
+Theorem loop_const_len: exists L,
+        (forall (c:asm) (t:iotrace),
+        proper_padded c = true ->
+        L = length (trace (run c iotrace))).
+\end{lstlisting}
+Theorem loop\_const in Listing~\ref{lst:NopPad} states that their
+exists a constant amount of time L such that under any io trace (ie,
+values read from pins) during execution, proper\_padded c implies that
+the program c runs a fixed length number of cycles. This means that a
+program checked with proper\_padded can be considered to run a fixed
+length amount of time under any trace.
+
+
+In order to verify such properties, the simulator generates the state
+spaces for the 8051 over a given execution and pin trace, generating
+an execution trace.  The parser checks over the 8051 binary and
+ensures that no unsafe instructions are present, such as setb EA,
+which would enable interrupts.  These implementations are heavliy
+derived from RockSalt \cite{rocksalt}.
+\section{Implementation and Progress}
+V-EmRALD is very much a work in progress. Currently, I am working on
+getting the 8051 assembly to RTL translation functional. This involves
+modifying the RockSalt code to fit the Intel Architecture, as well as
+augmenting on some additional features so as to be able to reason
+about things like timing. This will likely be a somewhat large
+challenge to figure out what the correct semantics are \emph{exactly}
+for the added traces. In order to expediate this process, I will
+initially focus on a subset of approximately 10 mnemonics which
+capture a large swath of 8051 behavior (ie, mov, add, jmp, lcall, and
+ret cover a lot of behavior).
+
+Once the simulator is complete, it will be fairly straightforward to
+implement the parser based on the Rocksalt derivative method as it is
+essentially just punching in a bunch of 1's and 0's from the Intel 8051
+manual.
+
+The next challenge will be to implement an assembler. I plan to make
+this assembler using Coq's Notation feature. The assembly will likely
+be a little bit non standard as it will need to support some special
+types of labels, and may not support certain features standard in
+assemblers such as .equ directives, because such things can be
+accomplished in the coq environment as easily. Making an assembler in
+Coq may have some other benefits in aiding later verifiable macro
+development \cite{coqasm}.
+
+Once this foundation is laid, then I will be in good shape to start
+formally showing the semantics of certain programs. This will again
+present a challenge in developing a semantics which are not only
+useful to embedded systems engineers, but also are amenable to proof
+automation.
+
+Once the above tasks are completed, I will then implement as much of
+the ISA as possible.
+
+If time permits, my final contribution would be in developing a
+test-jig so that I can verify the 8051 similator against
+real hardware.
+\section{Discussion}
+\subsection{Usability}
+V-EmRald cannot prevent all bugs. In order to test the effectiveness
+of such a system, it is imperative to run a user study to see if such
+a model helps. One such user study could testing and timing users on their
+ability to complete the following tasks with and without V-EmRALD (given a small
+hardware test-bench):
+\begin{enumerate}
+\item
+  Write a program which makes an LED blink with a certain frequency
+\item
+  Write a program which writes a copy of an array into a specific
+  memory location, maps $f(x) = x+1$ over the array, without modifying
+  any other memory.
+\item
+  Write a program which when a push button is hit, turns one LED on at
+  half brightness, and another LED at half brightness otherwise.
+\end{enumerate}
+These tests would determine if V-EmRALD improves a programmer's
+ability to reason about runtime, non-interference, and memory safety.
+\subsection{Limitations}
+The current plan for V-EmRALD fails to address several key
+embedded system properties.
+\subsubsection{Interrupts}
+Interrupts are explicitly required to be disabled because they would
+add a lot of additional complexity to the system. One could potentially,
+using an 8051 timers, devise a scheme as follows:
+\vfill
+\begin{lstlisting}[caption={The timer ISR is used to gaurantee a bound on the amount of time interrupt might be executing.}]
+  timer isr:
+  disable interrupts
+  go to interrupts_over
+  set timer to priority high with size 200 cycles
+  set all other interrupts priority low
+  enable interrupts
+  some interruptible loop
+  interrupts_over:
+\end{lstlisting}
+Such a scheme allows for a provably bounded window on interrupts; this is of dubious value given that polling would also accomplish
+a similar goal.
+\subsubsection{Hardware Interfaces}
+Embedded systems fundamentally interface with hardware, which can have
+difficult to understand behavior.  V-EmRALD does not do much in the
+way of helping a programmer verify that they understood their external
+hardware correctly. However, one exciting possibility would be the
+development of semantics for other peripheral chips.  This would allow
+programmers to verify a deeper model of their designs. However, this
+does not help with unreliable hardware such as sensors or power supply.
+
+
+
+
+
+
+%% \appendix
+%% \section{Appendix Title}
+
+%% This is the text of the appendix, if you need one.
+
+%% \acks
+
+%% Acknowledgments, if needed.
+
+% We recommend abbrvnat bibliography style.
+% The bibliography should be embedded for final submission.
+\bibliographystyle{abbrv}
+\begingroup
+\raggedright
+\bibliography{paper}
+\endgroup
+
+\end{document}
+
+%                       Revision History
+%                       -------- -------
+%  Date         Person  Ver.    Change
+%  ----         ------  ----    ------
+
+%  2013.06.29   TU      0.1--4  comments on permission/copyright notices
+
