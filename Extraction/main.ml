@@ -48,14 +48,4 @@ let  pl (x : (int8 * int8 list) list) =
 	   print_string " <- Byte from program\n";
 	   let d = BB.demo3  program (to_Big 6) in
 	   pl (IORUN.run d (to_Big fuel))
-	   (* print_string "done\n"; *)
-	   (* match v with *)
-	   (* | Some i -> *)
-	   (* 	  print_string "Got: "; *)
-	   (* 	  print_int  (Big.to_int i); *)
-	   (* 	  print_string "\n"; *)
-	   (* 	  () *)
-	   (* | None -> *)
-	   (* 	  print_string"No Result\n"; *)
-	   (* 	  () *)
   | None -> print_string "No Program?\n";;
