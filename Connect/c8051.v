@@ -72,11 +72,16 @@ Module i8051_Component.
     rtl_memory := AddrMap.init (Word.repr 0);
     rtl_code := CodeMap.init (Word.repr 0)
   |} init.
-  Definition computeitString cycle init := 
-    match ihx_to_byte_assoc_line (asciis init) None (Some nil) with
-      | Some bytes => computeit cycle  (load_code_bytes bytes)
-      | None => computeit cycle (load_code_bytes nil)
-      end.
-
+  Definition computeitIHXString cycle init := 
+    let loads := flat_map (fun x =>
+                             match ihx_to_byte_assoc_line (asciis x) None (Some nil) with
+                               | Some v => v
+                               | None => nil
+                             end) init in
+    computeit cycle  (load_code_bytes loads).
+  Definition computeitBinString cycle init := 
+    computeit cycle  (load_code_bytes_bin init 0).
+  Require Import Ascii.
+  Definition conv_char (c:ascii) : int8 := Word.repr (Z_of_nat (nat_of_ascii c)).
 End i8051_Component.
 

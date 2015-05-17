@@ -21,4 +21,5 @@ extraction: ctest connect model
 clean:
 	cd Connect && $(MAKE) clean
 	cd Model && $(MAKE) clean
+	cd Extraction && $(MAKE) clean
 	cd ctest && $(MAKE) clean

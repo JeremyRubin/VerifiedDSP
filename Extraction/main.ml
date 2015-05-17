@@ -1,7 +1,11 @@
 open Extracted;;
 open Coq_i8051_Component;;
 open Core.Std;;
-let r file = In_channel.read_all file;;
+open List;;
+let r file = In_channel.input_all file;;
+
+
+let read filename = In_channel.with_file filename ~f:r;;
 
   
 let explode s =
@@ -9,43 +13,62 @@ let explode s =
 	if i < 0 then l else exp (i - 1) (s.[i] :: l) in
   exp (String.length s - 1) [];;
 
-let program = explode (r Sys.argv.(1));;
-let rec print_char_list p =
-  match p with
-  | x :: r ->
-	 print_char x;
-	 print_char_list r;
-  | [] -> print_char '\n';;
-let rec print_load_list p =
-  match p with
-  | (x,y) :: r ->
-	 print_string "(";
-	 print_int (Big.to_int x);
-	 print_string ",";
-	 print_int (Big.to_int y);
-	 print_string ")\n";
-	 print_load_list r;
-  | [] -> print_char '\n';;
+(* let program = *)
+(*   let l = (read Sys.argv.(1) ) in *)
+(*   let p = List.map l  explode in *)
+(*   p;; *)
 
-let load_inst = ihx_to_byte_assoc_line (asciis program) None (Some []);;
+(* let rec print_char_list p = *)
+(*   match p with *)
+(*   | x :: r -> *)
+(* 	 print_char x; *)
+(* 	 print_char_list r; *)
+(*   | [] -> print_char '\n';; *)
+(* let rec print_load_list p = *)
+(*   match p with *)
+(*   | (x,y) :: r -> *)
+(* 	 print_string "("; *)
+(* 	 print_int (Big.to_int x); *)
+(* 	 print_string ","; *)
+(* 	 print_int (Big.to_int y); *)
+(* 	 print_string ")\n"; *)
+(* 	 print_load_list r; *)
+(*   | [] -> print_char '\n';; *)
 
-print_string "Loading Program:\n";;
-print_char_list program;;
-match load_inst with
-| Some insts -> print_load_list insts;
-| None -> ();;
+(* let load_inst = List.map program (fun x -> ihx_to_byte_assoc_line x None (Some []));; *)
 
 
-  let main () =
-	let v = (computeitString (Big.succ (Big.succ (Big.zero))) program) in
-	print_string "done\n";
-	match v with
+(* List.iter program  print_char_list ;; *)
+
+(* List.map load_inst (fun f -> match f with *)
+(* | Some insts -> print_load_list insts; *)
+(* | None -> ()) ;; *)
+
+let to_Big x =
+  let rec f a b =
+  match a with
+  | 0 -> b
+  | a' -> f (a-1) (Big.succ b) in
+  f x Big.zero;;
+			
+
+  let () =
+	let program =  List.map (explode (read Sys.argv.(1) )) conv_char in
+	match hd program with
 	| Some i ->
-	   print_string "Got: ";
-	   print_int  (Big.to_int i);
-	   print_string "\n";
-	   ()
-	| None ->
-	   print_string"No Result\n";
-	   ();;
-main ();;
+	   print_int (int_of_string Sys.argv.(2));
+	   print_string "\nGot a program!\n";
+	   print_int (Big.to_int i);
+	   print_string " <- Byte from program\n";
+	   let v = (computeitBinString (to_Big (int_of_string Sys.argv.(2))) program) in
+	   print_string "done\n";
+	   match v with
+	   | Some i ->
+		  print_string "Got: ";
+		  print_int  (Big.to_int i);
+		  print_string "\n";
+		  ()
+	   | None ->
+		  print_string"No Result\n";
+		  ()
+  | None -> print_string "No Program?\n";;

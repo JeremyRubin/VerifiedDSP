@@ -132,7 +132,7 @@ Module i8051_PARSER.
   Definition direct := (field 8) @ ((fun r => Direct_op (@Word.repr 7 r)) : _ -> result_m operand_t).
   Definition immediate := (field 8) @ ((fun r => Imm_op (@Word.repr 7 r)) : _ -> result_m operand_t).
 
-  Definition immediate_16 := (field 8) @ ((fun r => Imm16_op (@Word.repr 15 r)) : _ -> result_m operand_t).
+  Definition immediate_16 := (field 16) @ ((fun r => Imm16_op (@Word.repr 15 r)) : _ -> result_m operand_t).
   Definition bit_address := (field 8) @ ((fun r => Bit_op (bit_addr (@Word.repr 7 r))) : _ -> result_m operand_t).
   Definition byte := (field 8) @ (@Word.repr 7 : _ -> result_m byte_t).
  (* Definition halfword := (field 16) @ (@Word.repr 15 : _ -> result_m half_t).

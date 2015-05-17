@@ -660,26 +660,84 @@ Definition nibble x : option nat:=
 
 Open Local Scope nat_scope.
 Definition maybe_app {A:Type} a (m: option (list A)) := match m with | Some v =>  Some (a::v) | None => None end.
- Fixpoint ihx_to_byte_assoc_line ihx (mode:option (nat*nat)) acc:=
-  match ihx, mode with
-    | ":"::n1::n2::l1::l2::rt1::rt2::r, None =>
-      match nibble n1,  nibble n2, nibble l1, nibble l2 with
-        | Some a, Some b, Some c, Some d => ihx_to_byte_assoc_line r (Some (a*16+b, c*16+d)) acc
-        | _, _, _, _ => None
+ (* Fixpoint ihx_to_byte_assoc_line ihx (linestate:option (nat*nat)) acc:= *)
+ (*  match linestate, ihx with *)
+ (*      (** `byte` == `nibble`* `nibble`**) *)
+ (*    (** `:` (length data :`byte`) (address: `byte` * `byte`) (type : `byte`)  (data :list `byte`) **) *)
+ (*    | None, ":"::fuel1::fuel2 *)
+ (*         ::high_addr1::high_addr2 *)
+ (*         ::low_addr1::low_addr2 *)
+ (*         ::control1::control2::r => *)
+ (*      match control1, control2 with *)
+ (*        |"0", "1" => acc *)
+ (*        |"0", "0" => *)
+ (*         match nibble fuel1, nibble fuel2 *)
+ (*               , nibble high_addr1, nibble high_addr2 *)
+ (*               , nibble low_addr1, nibble low_addr2 *)
+ (*         with *)
+ (*           | Some a, Some b, Some c, Some d, Some e, Some f => *)
+ (*             let addr := ((c*16+d)*16 + e)*16 + f in *)
+ (*             let fuel := a*16+b in  *)
+ (*             ihx_to_byte_assoc_line r (Some (fuel, addr)) acc *)
+ (*           | _, _, _, _, _, _ => *)
+ (*             None *)
+ (*         end *)
+ (*        |_, _ => ihx_to_byte_assoc_line r None acc *)
+ (*      end *)
+ (*    | None, a::b::"010"::r => *)
+ (*      ihx_to_byte_assoc_line r None acc *)
+ (*    (** Extract a bytes **) *)
+ (*    | Some (fuel, addr), a::b::r => *)
+ (*      match fuel, nibble a, nibble b with *)
+ (*        | O, checksum1, checksum2 => *)
+ (*          (* let checksum := checksum1*16 + checksum2 in *) *)
+ (*          ihx_to_byte_assoc_line r None acc *)
+ (*        | S n, Some hi, Some lo => *)
+ (*          ihx_to_byte_assoc_line r (Some (n, addr+8)) (maybe_app (addr, (hi*16)+lo) acc) *)
+ (*        | _, _, _ => None *)
+ (*      end *)
+ (*    | _, a::b::nil => acc *)
+ (*    | _, _ => acc *)
+                
+ (*    end. *)
+
+ Fixpoint ihx_to_byte_assoc_line ihx (linestate:option (nat*nat)) acc:=
+  match linestate, ihx with
+      (** `byte` == `nibble`* `nibble`**)
+    (** `:` (length data :`byte`) (address: `byte` * `byte`) (type : `byte`)  (data :list `byte`) **)
+    | None, ":"::fuel1::fuel2
+         ::high_addr1::high_addr2
+         ::low_addr1::low_addr2
+         ::control1::control2::r =>
+      match control1, control2 with
+        |"0", "1" => acc
+        |"0", "0" =>
+         match nibble fuel1, nibble fuel2
+               , nibble high_addr1, nibble high_addr2
+               , nibble low_addr1, nibble low_addr2
+         with
+           | Some a, Some b, Some c, Some d, Some e, Some f =>
+             let addr := ((c*16+d)*16 + e)*16 + f in
+             let fuel := a*16+b in 
+             ihx_to_byte_assoc_line r (Some (fuel, addr)) acc
+           | _, _, _, _, _, _ =>
+             None
+         end
+        |_, _ => ihx_to_byte_assoc_line r None acc
       end
-    | a::b::"010"::r, None => ihx_to_byte_assoc_line r None acc
-    | a::b::r, Some (fuel, addr) =>
+    (** Extract a bytes **)
+    | Some (fuel, addr), a::b::r =>
       match fuel, nibble a, nibble b with
-        | O, _, _ => ihx_to_byte_assoc_line r None acc
-        | S n, Some n1, Some n2 =>
-          ihx_to_byte_assoc_line r (Some (n, addr+8)) (maybe_app (addr, (n1*16)+n2) acc)
+        | O, checksum1, checksum2 =>
+          (* let checksum := checksum1*16 + checksum2 in *)
+          ihx_to_byte_assoc_line r None acc
+        | S n, Some hi, Some lo =>
+          ihx_to_byte_assoc_line r (Some (n, addr+1)) (maybe_app (addr, (hi*16)+lo) acc)
         | _, _, _ => None
       end
-    | a::b::nil, _ => acc
     | _, _ => acc
                 
     end.
-
 
  Require Import Ascii.
  Fixpoint asciis (s:string) : list ascii:=
@@ -687,6 +745,7 @@ Definition maybe_app {A:Type} a (m: option (list A)) := match m with | Some v =>
        | EmptyString => nil
        | String c r => c:: asciis r
                         end.
+
  Definition to_ascii := map asciis.
 
  Definition line_to_program x := fold_right (fun s x =>  app (s++"010"::nil) x ) nil x.
@@ -698,5 +757,12 @@ Definition maybe_app {A:Type} a (m: option (list A)) := match m with | Some v =>
      |_ =>ret tt
    end.
    
+ Fixpoint  load_code_bytes_bin (b: list nat) (start:nat) : RTL unit :=
+   match b with
+     |code::r =>
+      set_code_byte (Word.repr (Z_of_nat start)) (Word.repr (Z_of_nat code));;
+        load_code_bytes_bin r (S start)
+     |_ =>ret tt
+   end.
 
  
