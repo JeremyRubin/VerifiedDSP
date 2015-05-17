@@ -19,10 +19,11 @@ Import i8051_MACHINE.
 (*                          output := {| P0:=Word.repr 0;P1:=Word.repr 0;P2:=Word.repr 0;P3:=Word.repr 0 |} *)
 (*                       |}. *)
 Definition m_init   :=  {|
-                        pc_reg := Word.repr  0;
+                        pc_reg := Word.zero;
+                        pc_mod := Word.zero;
                         (* trace := []; *)
                         external :=
-                          {| P0:=Word.repr 0;P1:=Word.repr 0;P2:=Word.repr 0;P3:=Word.repr 0 |}|}.
+                          {| P0:=Word.zero;P1:=Word.zero;P2:=Word.zero;P3:=Word.zero |}|}.
 
 (*     (fun tr => let t := hd  default tr in  *)
 (*                         {| executing := executing t; *)

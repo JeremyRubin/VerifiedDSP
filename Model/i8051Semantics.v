@@ -38,7 +38,8 @@ Module i8051_MACHINE.
   | P0_loc : loc size8
   | P1_loc : loc size8
   | P2_loc : loc size8
-  | P3_loc : loc size8.
+  | P3_loc : loc size8
+  | pc_mod_loc : loc size1.
 
 
   Definition location := loc.
@@ -53,7 +54,8 @@ Module i8051_MACHINE.
                    P3 : int size8}.
   Record mach := { 
     pc_reg : int size_pc;
-    external : ports
+    external : ports;
+    pc_mod : int size1
   }.
   Definition mach_state := mach.
 
@@ -64,22 +66,31 @@ Module i8051_MACHINE.
       | P1_loc => P1 (external m)
       | P2_loc => P2 (external m)
       | P3_loc => P3 (external m)
+      | pc_mod_loc => pc_mod m
     end.
 
 
 
   Definition set_pc v m  :=  {|
        pc_reg := v;
+       pc_mod := pc_mod m;
+       external := external m
+    |}.
+  Definition set_pc_mod v m  :=  {|
+       pc_reg :=pc_reg m;
+       pc_mod := v;
        external := external m
     |}.
   Definition set_external f m:= {|
                                  pc_reg := pc_reg m;
+                                 pc_mod := pc_mod m;
                                  external := f
                                                |}.
                                 
   Definition set_location s (l:loc s) (v:int s) (m:mach_state) := 
     match l in loc s' return int s' -> mach_state with 
       | pc_loc => fun v => set_pc v m
+      | pc_mod_loc => fun v => set_pc_mod v m
       | _ => fun _ => m (** Do Nothing **)
     end v.
 End i8051_MACHINE.
@@ -156,6 +167,7 @@ Module i8051_Decode.
 
   Definition get_pc := fresh (get_loc_rtl pc_loc).
   Definition set_pc v := emit set_loc_rtl v pc_loc.
+  Definition set_pc_mod v := emit set_loc_rtl v pc_mod_loc.
   Definition not {s} (p: pseudo_reg s) : Conv (pseudo_reg s) :=
     mask <- load_Z s (Word.max_unsigned s);
     arith xor_op p mask.
@@ -279,11 +291,15 @@ Module i8051_Decode.
     match op with
       | Imm16_op x =>
         y <- load_int x;
-        set_pc y
+        set_pc y;;
+        r <- load_int (Word.repr 1);
+        set_pc_mod r
       | _ => emit error_rtl
     end.
   Definition conv_JMP : Conv unit :=
 
+    r <- load_int (Word.repr 1);
+    set_pc_mod r;; 
     Pdpl <- load_Z size8 Alias.DPL;
     Pdph <- load_Z size8 Alias.DPH;
     dph <- read_byte Pdph;
@@ -465,12 +481,13 @@ Fixpoint RTL_step_list l :=
 
 Definition run_rep 
    (ins: instr) (default_new_pc : int size_pc) : RTL unit := 
-  curpc <- get_loc pc_loc;
   RTL_step_list (i8051_Decode.instr_to_rtl ins);;
-  newpc <- get_loc pc_loc;
-  if Word.eq newpc  curpc then (* Change pc to default if inst didn't modify it *)
+  z <- get_loc pc_mod_loc;
+  if Word.eq Word.zero  z then (* Change pc to default if inst didn't modify it *)
     set_loc pc_loc default_new_pc
-  else ret tt.
+  else
+    set_loc pc_mod_loc Word.zero.
+
 
 Definition step : RTL unit := 
   flush_env;;
