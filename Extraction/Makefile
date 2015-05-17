@@ -7,7 +7,7 @@ all: main
 	echo "Done Compiling"
 
 Extraction.v: 
-	echo "Add LoadPath \"../Connect\". Add LoadPath \"../Model\". Require Import c8051. Import i8051_Component. Extraction Language Ocaml. Extraction \"extracted.ml\" i8051_Component." > Extraction.v
+	echo "Add LoadPath \"../Connect\". Add LoadPath \"../Model\". Require Import Breadboard. Import BB. Extraction Language Ocaml. Extraction \"extracted.ml\"  BB." > Extraction.v
 
 
 

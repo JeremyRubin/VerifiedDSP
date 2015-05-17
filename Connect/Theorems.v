@@ -1,4 +1,5 @@
 
+Add LoadPath "../Model".
 Require Import String.
 Require Import Ascii.
 Require Import List.
@@ -11,6 +12,7 @@ Open Scope string_scope.
 Require Import Run.
 Import Wires.
 Require Import Breadboard.
+Import BB.
 Import IORUN.
 Require Import IOModule.
 Import IO.

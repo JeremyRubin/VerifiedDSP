@@ -51,47 +51,32 @@ Module i8051_MACHINE.
                    P1 : int size8;
                    P2 : int size8;
                    P3 : int size8}.
-  Record trace_t := { executing :instr;
-                      pc :int size_pc;
-                      cycle : Z;
-                      output : ports}.
-  
-  Definition trace_type := trace_t.
   Record mach := { 
     pc_reg : int size_pc;
-    external : list trace_t -> trace_t;
-    trace : list trace_t
+    external : ports
   }.
   Definition mach_state := mach.
 
   Definition get_location s (l:loc s) (m:mach_state) : int s := 
     match l in loc s' return int s' with 
       | pc_loc => pc_reg m
-      | P0_loc => P0 (output (external m (trace m)))
-      | P1_loc => P1 (output (external m (trace m)))
-      | P2_loc => P2 (output (external m (trace m)))
-      | P3_loc => P3 (output (external m (trace m)))
+      | P0_loc => P0 (external m)
+      | P1_loc => P1 (external m)
+      | P2_loc => P2 (external m)
+      | P3_loc => P3 (external m)
     end.
 
 
 
   Definition set_pc v m  :=  {|
        pc_reg := v;
-       trace := trace m;
        external := external m
     |}.
   Definition set_external f m:= {|
                                  pc_reg := pc_reg m;
-                                 trace := trace m;
                                  external := f
                                                |}.
                                 
-  Definition add_trace t m:= {|
-                                 pc_reg := pc_reg m;
-                                 trace := t :: trace m;
-                                 external := external m
-                                               |}.
-  Definition get_trace := trace.
   Definition set_location s (l:loc s) (v:int s) (m:mach_state) := 
     match l in loc s' return int s' -> mach_state with 
       | pc_loc => fun v => set_pc v m
@@ -405,13 +390,8 @@ Module i8051_Decode.
             P1 := Word.one;
             P2 := Word.one;
             P3 := Word.one|} in
-  let t := {| executing := i;
-                      pc := Word.one;
-                      cycle := 0 ; (** TODO **)
-                      output := p|} in
     runConv 
       (
-      emit (add_trace_rtl t) ;;
         match i with
          | ANL  op1 op2 => conv_ANL  op1 op2
          (* | ADD op1 op2 => conv_ADD op1 op2 *)
@@ -501,21 +481,26 @@ Definition step : RTL unit :=
           run_rep  instr default_new_pc.
 Check set_byte.
 Check get_byte.
-Fixpoint nsteps fuel (l:loc size8) : RTL (ports):=
-  match fuel with
-    | O =>
+Fixpoint nsteps ps (l:loc size8) : RTL (ports):=
+  match ps with
+    | nil =>
       d <- get_byte (Word.repr Alias.P3);
       b <- get_byte (Word.repr Alias.P2);
       c <- get_byte (Word.repr Alias.P1);
       a <- get_byte (Word.repr Alias.P0);
       ret {|P0:=a;P1:=b;P2:=c;P3:=d|}
-    | S n => step;; nsteps n l
+    | p::r=>
+      set_loc P0_loc (P0 p);;
+      set_loc P1_loc (P1 p);;
+      set_loc P2_loc (P2 p);;
+      set_loc P3_loc (P3 p);;
+      step;; nsteps r l
   end.
 Definition nsteps_init (init: RTL unit) fuel (l:loc size8) : RTL (ports) :=
   init;;
   nsteps fuel l.
-Definition dump_state n s (init: RTL unit) : option (ports) :=
-      match nsteps_init init n  P3_loc s with
+Definition dump_state s (ps: list ports) (init: RTL unit) : option (ports) :=
+      match nsteps_init init (rev ps)  P3_loc s with
         | (Okay_ans v, rs') => Some v
         | (Fail_ans, rs') => None
         | (SafeFail_ans, rs') => None
@@ -661,6 +646,7 @@ Definition nibble x : option nat:=
 
 Open Local Scope nat_scope.
 Definition maybe_app {A:Type} a (m: option (list A)) := match m with | Some v =>  Some (a::v) | None => None end.
+(* Intel hex is weird *)
  (* Fixpoint ihx_to_byte_assoc_line ihx (linestate:option (nat*nat)) acc:= *)
  (*  match linestate, ihx with *)
  (*      (** `byte` == `nibble`* `nibble`**) *)
@@ -685,8 +671,6 @@ Definition maybe_app {A:Type} a (m: option (list A)) := match m with | Some v =>
  (*         end *)
  (*        |_, _ => ihx_to_byte_assoc_line r None acc *)
  (*      end *)
- (*    | None, a::b::"010"::r => *)
- (*      ihx_to_byte_assoc_line r None acc *)
  (*    (** Extract a bytes **) *)
  (*    | Some (fuel, addr), a::b::r => *)
  (*      match fuel, nibble a, nibble b with *)
@@ -694,51 +678,12 @@ Definition maybe_app {A:Type} a (m: option (list A)) := match m with | Some v =>
  (*          (* let checksum := checksum1*16 + checksum2 in *) *)
  (*          ihx_to_byte_assoc_line r None acc *)
  (*        | S n, Some hi, Some lo => *)
- (*          ihx_to_byte_assoc_line r (Some (n, addr+8)) (maybe_app (addr, (hi*16)+lo) acc) *)
+ (*          ihx_to_byte_assoc_line r (Some (n, addr+1)) (maybe_app (addr, (hi*16)+lo) acc) *)
  (*        | _, _, _ => None *)
  (*      end *)
- (*    | _, a::b::nil => acc *)
  (*    | _, _ => acc *)
                 
  (*    end. *)
-
- Fixpoint ihx_to_byte_assoc_line ihx (linestate:option (nat*nat)) acc:=
-  match linestate, ihx with
-      (** `byte` == `nibble`* `nibble`**)
-    (** `:` (length data :`byte`) (address: `byte` * `byte`) (type : `byte`)  (data :list `byte`) **)
-    | None, ":"::fuel1::fuel2
-         ::high_addr1::high_addr2
-         ::low_addr1::low_addr2
-         ::control1::control2::r =>
-      match control1, control2 with
-        |"0", "1" => acc
-        |"0", "0" =>
-         match nibble fuel1, nibble fuel2
-               , nibble high_addr1, nibble high_addr2
-               , nibble low_addr1, nibble low_addr2
-         with
-           | Some a, Some b, Some c, Some d, Some e, Some f =>
-             let addr := ((c*16+d)*16 + e)*16 + f in
-             let fuel := a*16+b in 
-             ihx_to_byte_assoc_line r (Some (fuel, addr)) acc
-           | _, _, _, _, _, _ =>
-             None
-         end
-        |_, _ => ihx_to_byte_assoc_line r None acc
-      end
-    (** Extract a bytes **)
-    | Some (fuel, addr), a::b::r =>
-      match fuel, nibble a, nibble b with
-        | O, checksum1, checksum2 =>
-          (* let checksum := checksum1*16 + checksum2 in *)
-          ihx_to_byte_assoc_line r None acc
-        | S n, Some hi, Some lo =>
-          ihx_to_byte_assoc_line r (Some (n, addr+1)) (maybe_app (addr, (hi*16)+lo) acc)
-        | _, _, _ => None
-      end
-    | _, _ => acc
-                
-    end.
 
  Require Import Ascii.
  Fixpoint asciis (s:string) : list ascii:=
