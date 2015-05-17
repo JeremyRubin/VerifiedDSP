@@ -465,9 +465,12 @@ Fixpoint RTL_step_list l :=
 
 Definition run_rep 
    (ins: instr) (default_new_pc : int size_pc) : RTL unit := 
+  curpc <- get_loc pc_loc;
   RTL_step_list (i8051_Decode.instr_to_rtl ins);;
-  
-ret tt.
+  newpc <- get_loc pc_loc;
+  if Word.eq newpc  curpc then (* Change pc to default if inst didn't modify it *)
+    set_loc pc_loc default_new_pc
+  else ret tt.
 
 Definition step : RTL unit := 
   flush_env;;
