@@ -20,23 +20,20 @@
 %-----------------------------------------------------------------------------
 
 
-\documentclass[preprint,11pt]{sigplanconf}
+\documentclass[preprint,12pt]{sigplanconf}
 
-% The following \documentclass options may be useful:
-
-% preprint      Remove this option only once the paper is in final form.
-% 10pt          To set in 10-point type instead of 9-point.
-% 11pt          To set in 11-point type instead of 9-point.
-% authoryear    To obtain author/year citation style instead of numeric.
 
 \usepackage{amsmath}
 \usepackage{listings}
+\usepackage{amsfonts}
 \usepackage{color}
+\usepackage{url}
+\usepackage{hyperref}
 
 \definecolor{mygreen}{rgb}{0,0.6,0}
 \definecolor{mygray}{rgb}{0.5,0.5,0.5}
 \definecolor{mymauve}{rgb}{0.58,0,0.82}
-\definecolor{mygray2}{rgb}{0.95,0.95,0.95}
+\definecolor{mygray2}{rgb}{1,1,1}
 
 \lstset{ %
   backgroundcolor=\color{mygray2},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
@@ -53,14 +50,14 @@
   keywordstyle=\color{blue},       % keyword style
   language=Octave,                 % the language of the code
   morekeywords={*,...},            % if you want to add more keywords to the set
-  numbers=none,                    % where to put the line-numbers; possible values are (none, left, right)
+  numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
   numbersep=5pt,                   % how far the line-numbers are from the code
   numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
   rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
   showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
   showstringspaces=false,          % underline spaces within strings only
   showtabs=false,                  % show tabs within strings adding particular underscores
-  stepnumber=2,                    % the step between two line-numbers. If it's 1, each line will be numbered
+  stepnumber=1,                    % the step between two line-numbers. If it's 1, each line will be numbered
   stringstyle=\color{mymauve},     % string literal style
   tabsize=2,                       % sets default tabsize to 2 spaces
   title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
@@ -69,6 +66,7 @@
 %% Coq definition (c) 2001 Guillaume Dufay
 %% <Guillaume.Dufay@sophia.inria.fr>
 %% with some modifications by J. Charles (2005)
+%% And Jeremy Rubin (2015)
 %%
 \lstdefinelanguage{Coq}%
                   {morekeywords={Variable,Inductive,CoInductive,Fixpoint,CoFixpoint,%
@@ -80,7 +78,7 @@
                       Transparent,Inversion,Absurd,Generalize,Mutual,Cases,of,end,Analyze,%
                       AutoRewrite,Functional,Scheme,params,Refine,using,Discriminate,Try,%
                       Require,Load,Import,Scope,Set,Open,Section,End,match,with,Ltac,%
-                      exists,forall,fix,fun
+                      exists,forall,fix,fun,Prop,Type,Module
                     },%
                     sensitive, %
                     morecomment=[n]{(*}{*)},%
@@ -100,29 +98,18 @@
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
 
-\conferenceinfo{6.888 '15}{March 19, 2015, Cambridge, MA, U.S.A.} 
+\conferenceinfo{6.888 '15}{\today, Cambridge, MA, U.S.A.} 
 \copyrightyear{2015} 
 \copyrightdata{978-1-nnnn-nnnn-n/15/03} 
 \doi{nnnnnnn.nnnnnnn}
 
-% Uncomment one of the following two, if you are not going for the 
-% traditional copyright transfer agreement.
-
-%\exclusivelicense                % ACM gets exclusive license to publish, 
-                                  % you retain copyright
-
-%\permissiontopublish             % ACM gets nonexclusive license to publish
-                                  % (paid open-access papers, 
-                                  % short abstracts)
 
 \titlebanner{6.888: Certified Systems Software 2015}        % These are ignored unless
 
 \preprintfooter{Framework to prove 8-bit embedded
   software systems on the Intel 8051 series} % 'preprint' option specified.
-
-\title{V-EmRALD}
-\subtitle{Verified Embedded Realtime Assembly Language Description for
- 8-bit Intel 8051 Semantics}
+\title{VerifiedDSP: Verifying Digital Signal Processing Designs in Coq}
+\subtitle{\url{https://github.com/JeremyRubin/VerifiedDSP}}
 
 \authorinfo{Jeremy Rubin}
  {jlrubin@mit.edu}
@@ -130,27 +117,29 @@
 \maketitle
 
 \begin{abstract}
-  Microcontrollers are used widely in a wide range of devices and
-  machines.  There are many life critical applications of
-  microcontrollers including medical equipment, transport, and
-  communications. It is therefore of great importance to ensure the
-  proper functionality of such devices. Many microcontrollers are
-  simple, preferring to rely on a tried and true 8-bit architecture
-  without a full operating system so that they may more easily reason
-  about real-time responses to events. For instance, it could be
-  disastrous to have a garbage collection pause while trying to apply
-  the brakes of a car. However, this simplicity comes at a cost;
-  without higher level constructs a programmer must manually write and
-  check a lot more code. Furthermore, it is hard for a programmer to
-  verify that the assembly they wrote is correctly translated into the
-  binary loaded onto chip.
+  Digital Signal Processors and microcontrollers are used widely in a
+wide range of devices and machines.  There are many life critical
+applications, including medical equipment, transport, and
+communications. It is therefore of great importance to ensure the
+proper functionality of such devices. Many of these devices are
+simple, preferring to rely on a tried and true 8-bit architecture
+without a full operating system so that they may more easily reason
+about real-time responses to events. For instance, it could be
+disastrous to have a garbage collection pause while trying to apply
+the brakes of a car. However, this simplicity comes at a cost; without
+higher level constructs a programmer must manually write and check a
+lot more code due to the high resource constraints. Furthermore, it is
+hard for a programmer to verify that the code they wrote is correctly
+translated into the binary loaded onto chip, the compiled version may
+have different properties than desired.
 
 
-  V-EmRALD is a new framework for programming 8-bit Intel 8051 series
-  microcontroller which includes a verified assembler, 8051 simulator, and
-  higher level constructs to help programmers formalize the behavior
-  and run time of control loops. We are currently building the
-  prototype of V-EmRALD.
+   This paper presents a new framework, VerifiedDSP, for programming
+8-bit Intel 8051 series microcontrollers and designing embedded
+Digital Signal Processing systems. It includes an 8051 simulator, a
+prototyping framework for mocking out specifications, and some higher
+level constructs to help programmers formalize the behavior and run
+time of control loops.
 \end{abstract}
 
 %% \category{CR-number}{subcategory}{third-level}
@@ -165,10 +154,10 @@
 
 \section{Introduction}
 Modern machines often rely on a combination of mechanical systems,
-electrical systems, sensors, and software. The advent of embedded systems
-has allowed for much more accurate and complicated designs to be built because
-they allow for tighter feedback loops as well as convenient ways to interface
-between disparate systems.
+electrical systems, sensors, and software. The advent of embedded
+systems has allowed for much more accurate and complicated designs to
+be built because they allow for tighter feedback loops as well as
+convenient ways to interface between disparate systems.
 
 Often times these embedded systems are built with simple
 microcontrollers ($\mu Cs$) such as 8-bit because a more powerful
@@ -181,47 +170,42 @@ life-critical. Unfortunately, there have been many instances where the
 life-critical nature of this role was made all too clear with
 catastrophic failures.
 
-V-EmRALD is an effort to reduce the likelihood of programmer errors as
-well as toolchain errors when working with 8-bit Intel 8051 series
-microcontrollers. This chip was chosen because the author is familiar
-with them and they are very widely deployed. V-EmRALD, once
-implemented, will be composed of a trusted simulator, a verified
-assembler, and the utilities which assist programmers in formally
-reason about behavior of control loop programs. Behavior can be
-characterized by several properties: return values, execution time,
-pin output, and non interference. Return values are defined as a
-separation logic over assembly chunks. The basic notion would be that
-after execution between two labels, some properties are
-preserved. V-EmRALD will initially target a simplified separation
-logic which for many embedded applications is enough. This logic will
-be solely be based on register restoring after calls and writing to a
-limited space. This restriction can be lifted in the future. Execution
-time will be defined as the number of cycles required to run from a
-label to another label. Pin output will be defined as the state of the
-pins on the chip, and can be modeled as a separation logic as well
-(pins are like memory). There will be special utilities to deal with
-the input and output nature of pins. Non interference statements are
-meta statements on behavior which will capture behavior properties
-based on different input patterns. Examples could include ensuring
-that a single control handler is executed when it is in critical
-modes, a handler is not starved for more than N cycles, or a token for
-control over some IO pins is explicitly passed from handler to
-handler.
+This paper presents an effort to reduce the likelihood of engineering
+errors as well as toolchain errors when building a Digital Signal
+Processing unit (DSP), including complex designs using a
+microcontroller such as the 8-bit Intel 8051 series
+microcontrollers\footnote{This chip was chosen because the author is
+familiar with them and they are very widely deployed.}.
+
+There are two main components of this project: a
+trusted-but-proof-ready 8051 simulator, and utilities which assist
+programmers in prototyping formally reasoning about behavior of
+embedded designs. Behavior is characterized by traces on ``pins''.
+
+These traces can encode many properties such as return values,
+execution time, pin output, and non interference.
+
+The internal behavior of the microcontroller is provable, but the
+higher level specifications of a design, only deal in traces. The
+internal state of the microcontroller can still be reasoned about for
+proofs, but it is masked to allow for a better development
+cycle. Microcontroller functionality can be mocked out, and refinement
+can be shown between a functional description and a microcontroller.
 
 This system will have many limitations which may affect its real-world usefulness,
 which will be expounded in the discussion.
 
 \section{Motivation}
 There are several concrete examples of embedded system failures which
-motivate V-EmRALD.
+motivate this work.
 \subsection{Medical Devices}
 The Therac-25 was a radiation therapy machine which lethally overdosed
 6 people \cite{therac}. While a large portion of the of the blame for
-this could be placed on the lack of hardware failsafes, it was
+this could be placed on the lack of hardware failsafe, it was
 ultimately unverified software which caused the deadly malfunction.
 
 Another interesting medical device is the pacemaker. A 2004 study saw
-that approximately 1/1,200 pacemaker re-programmings loaded faulty
+that approximately 1/1,200 pacemaker reprogramming events loaded faulty
 programs onto the device, which could cause a patient's heart rate to
 elevate to 185 beats per minutes. The fault was due to multiple
 timer interrupts being enabled at the same time, when only one was
@@ -245,6 +229,287 @@ signatures for requests from a certain number (such as send a
 text-message). Recently, exploits have been found that allow a remote
 attacker to take control of the SIM card and issue illegitimate
 requests \cite{sim}.
+\section{Design Overview}
+The following subsections will contain an overview of the major parts of
+this project: \autoref{subsec:component} will discuss the component
+definitions; \autoref{subsec:wires} will discuss the wiring framework
+used to connect the components; \autoref{subsec:running} discusses the
+execution of a wiring;\autoref{subsec:8051} will discuss the microcontroller implementations.
+
+
+\subsection{Component} \label{subsec:component}
+
+The fundamental definition in VerifiedDSP is the \emph{IO} module, which
+has 3 main definitions detailed in \autoref{lst:iomod}.
+\begin{lstlisting}[language=Coq,label={lst:iomod},caption={IO module definition}]
+Module IO.
+  Definition t :=  nat.
+  Definition trace := list (list t).
+  Inductive func :=
+  | fn_args : nat -> (trace -> t) -> func.
+End IO.
+\end{lstlisting}
+
+\paragraph{IO.func}
+The most important definition is IO.func. An IO.func is a pair of a
+number of arguments and a function which can process an IO.trace to produce
+an output IO.t.
+\paragraph{IO.t} IO.t can be thought of as a \emph{voltage}, and it is the type passed
+around by other modules.
+\paragraph{IO.trace}
+The IO.trace is simply a list of lists of the IO.t voltage. Each trace is
+implicitly numbered by their position in the top list.
+\paragraph*{}
+\begin{lstlisting}[language=Coq, caption={An
+integration unit, an incrementing unit, and an always 0 ``rail''},
+label={lst:simplecomp}]
+  Definition integrator : IO.func :=
+      IO.fn_args 1 (fun x =>suml (hd [] x)).
+  Definition incrementor : IO.func := 
+      IO.fn_args 1 (fun x =>len (hd [] x)).
+  Definition zero_rail : IO.func := 
+      IO.fn_args 0 (fun _ =>0).
+\end{lstlisting}
+Some example components are shown in \autoref{lst:simplecomp}.
+
+\subsection{Wiring}\label{subsec:wires}
+At the core of this project is a way of connecting these components
+together to perform computations. This
+is modeled as an infinite breadboard with a single discrete time clock. There is a set of
+$\mathbb{N}$ pins that a device can connect to. Devices can read any
+pin, and can write to a single pin. Multiple outputs can be simulated
+by making duplicate copies of the same hardware which write to
+different pins. \autoref{lst:wiring} shows the breadboard definition.
+\begin{lstlisting}[language=Coq, label={lst:wiring}, caption={wiring
+type definition}]
+  Inductive wiring :=
+  | base :  wiring
+  | watch_set :  wiring -> list nat ->
+                 IO.func -> nat ->
+                 wiring
+  | just_set : wiring  -> 
+               IO.func -> nat -> wiring
+  | join : wiring -> wiring -> wiring
+  | doc : wiring -> nat -> string -> wiring.
+\end{lstlisting}
+watch\_set observes a list of pins, and writes to a single pin.\\
+just\_set only has access to a single clock trace, but sets values without observing other state.\\
+join joins two separate networks together.\\
+doc adds non functional documentation for convenience, which is useful for more complex projects.\\
+We define the following notations for the wiring:
+\begin{equation}
+w //  m \sim> f \sim>  n \equiv watch\_set\ w\ m\ f\ n 
+\end{equation}
+\begin{equation}
+w */  m \sim> f \sim>  n \equiv just\_set\ w\ f\ n 
+\end{equation}
+\begin{equation}
+  w1\ \sim\&\sim\ w2 \equiv join\ w1\ w2
+\end{equation}
+\begin{equation}
+  w\ \#\ p\ c  \equiv doc\ w\ p\ c
+\end{equation}
+
+
+Once a wiring is complete, it should be checked for correctness. The
+property valid\_wiring, as described in \autoref{lst:validwire},
+checks this. These invariants are important for a correct design.
+
+
+\begin{lstlisting}[language=Coq, label={lst:validwire}, caption={Check that all pins that are
+being read from are written to, that there is no contention for pins
+(ie, two devices driving the same pin, and that all devices are fully
+connected to the proper number of pins.)}]
+Fixpoint valid_wiring' w ins outs: Prop :=
+  match w with 
+    | base  =>
+      set_intersect ins outs = ins
+    | w' // from ~> fn_args n f ~> to =>
+      ~set_in to outs /\
+      n = length from /\
+      valid_wiring' w' (union ins from)
+          (set_add to outs)
+    | w' */ fn ~> to=>
+      ~set_in to outs
+      /\ valid_wiring' w' ins
+             (set_add to outs)
+    | w1 ~&~ w2 =>
+      let w1o := output_pins w1 [] in
+      let w2o := output_pins w2 [] in
+      valid_wiring' w1 (union w2o ins)
+          (union w2o outs) /\
+      valid_wiring' w2  (union w1o ins)
+          (union w1o outs)
+    | w' # _ _ => 
+        valid_wiring' w'  ins outs
+  end.
+Definition valid_wiring w := valid_wiring' w nil nil.
+\end{lstlisting}
+
+Wirings are not correct by construction. This is because it is
+desirable to produce incomplete modules which need to be \emph{plugged in} to one
+another (ie, using a join) before being finished. The doc constructor is 
+important for this so that developers may easily check to see what the
+other developer intended to be connected.
+
+If two modules are needed in the same system, but they conflict there is a 
+function $rewire$ which provably reconnects a system so as not to
+conflict on any pin. It works by adding the max pin number + 1 of the
+other circuit to every pin numbering. If the smallest pin number in a
+system is greater than the largest in the other, then it is clear that
+they will not clash. The specific implementation should not be relied
+as many different rewirings could be performed. Understanding
+rewirings is another use for the documentation functionality.
+
+
+\begin{lstlisting}[language=Coq, caption={A simple wiring}, label={lst:simplewire}]
+Definition example :=
+    base 
+    */  zero_rail ~> 0
+    */  incrementor ~> 2
+    //  [2] ~> integrator ~> 3
+    #   3 "Integrated incrementor".
+\end{lstlisting}
+
+Two modules which obeys valid\_wiring can not interfere with one another and
+can be safely joined. A valid wiring can be joined with an arbitrary
+(valid or invalid)
+wiring an either become invalid or stay valid, if it stays valid then
+certain properties should be preserved as shown in \autoref{lst:nonint}.
+
+
+\begin{lstlisting}[language=Coq, caption={On adding a new module w\'\ to a valid wired w, for all traces the outputs are
+the same if present, or may be added if not present.} , label={lst:nonint}]
+Theorem non_interference1 :
+forall w w', 
+valid_wiring w ->
+valid_wiring  (w ~&~ w') ->
+forall n t,
+let orig := find_trace t (run w n) in
+let mod := find_trace t (run (w ~&~ w') n) in
+match  orig, mod with
+    | Some a, Some b => a = b
+    | Some a, None => False
+    | None, Some a => True
+    | None, None => True
+end.
+\end{lstlisting}
+
+\subsection{Running}\label{subsec:running}
+Once a wiring is constructed, it can be \emph{run}. Running a wiring
+involves walking over the wire structure and applying the latest
+traces to determine the next states. Functions are computed over the
+entire trace at each step. This could be optimized, but for proofs it
+is simpler. The run function can be proven to preserve history (\autoref{lst:preserve}) and
+present consistent views of pins to all functions in the structure.
+For example, the trace on pin 3 from \autoref{lst:simplewire} is 
+ [36; 28; 21; 15; 10; 6; 3; 1; 0; 0].
+ 
+
+\begin{lstlisting}[language=Coq, label={lst:preserve}, caption={The
+next run is identical up to the latest result}]
+Theorem no_modify_history: forall n w,  run  w n = tl (run w (S n)).
+\end{lstlisting}
+
+
+  
+\subsection{8051}\label{subsec:8051}
+
+An IO.func can be implemented as any function which can operate over a IO.trace.
+Thus, it is possible to design significantly more complicated IO.funcs
+than those in \autoref{lst:simplecomp}. VerifiedDSP includes a general purpose 8051 IO.func that can be integrated
+into any design. The basic signature of the device is as follows:
+
+\begin{lstlisting}[language=Coq, caption={The adc and dac provide
+conversions to and from the networks type, the bin is a list of
+bytes to be loaded into code memory. The 8051's ports must all be connected. First the program is loaded into
+memory, then the component can be executed over any set of 32 pin
+traces. There is only one output pin, but as noted earlier duplicate
+devices can be used to simulate multiple output pins.}]
+Definition i8051_Component 
+  bin adc dac :=
+  fn_args (8*4) (fun t =>
+                   let ps := traces t adc in
+                   dac (run_8051_bin_string bin ps)).
+\end{lstlisting}
+
+
+A specific program on an 8051 can be shown to simulate another
+function using the relation func\_same in \autoref{lst:fsame}. 
+
+\begin{lstlisting}[language=Coq, label={lst:fsame}, caption={Check
+that over any well formed IO.trace, two IO.funcs have identical
+results. In Theorem simulates, an 8051 is shown to simulate a zero function} ]
+Definition func_same (i i':IO.func) := 
+    forall (tr:IO.trace),
+    let lengths := (map
+    (fun x => length x)
+    tr) in 
+    let fl := hd 0 lengths
+    in
+    fold_left (fun acc  x
+    =>x=fl/\acc)  lengths
+    True->
+    match i, i' with
+      |IO.fn_args n f,
+      IO.fn_args n' f'=>
+       length tr = n ->
+       f tr = f' tr /\ n = n'
+    end.
+
+(** 
+[2;0;0] is 8051 binary for:
+.org 0h
+main:
+ljmp main
+ **)
+Theorem simulates :  func_same (i8051_Component [2;0;0] threshold dac)
+(IO.fn_args (8*4) (fun _ => 0)).
+\end{lstlisting}
+
+
+\subsubsection{Implementation and Progress}
+A complete VerifiedDSP 8051 model is still in progress. Currently, the
+8051 can run approximately 5 instructions (eg, JMP, LJMP, SETB, CLR,
+ANL). The implementations are heavliy derived from RockSalt
+\cite{rocksalt}, and is basically a port from their x86 model to
+8051. \autoref{lst:i8051} shows the RTL implementation of the SETB instruction.
+
+
+\begin{lstlisting}[language=Coq, label={lst:i8051}, caption={The SETB
+instructions Register Transfer Logic implementation. The argument type is first
+checked, and then the argument is checked to be a valid bit address
+(not all values are bit addressable). The proper bit is or'ed into memory.}]
+Definition conv_SETB (op1:operand) : Conv unit :=
+match op1 with
+    | Bit_op (bit_addr baddr) =>
+      if is_valid_bit_addr baddr then
+        let bsel := and baddr 3 in
+        let addr := and baddr (~3) in
+        let ormask := shl 1 bsel in
+        ormaskReg <- load_int ormask;
+        a <- load_int addr;
+        v <- read_byte a;
+        v' <- arith or_op v ormaskReg;
+        write_byte v' a
+        else
+          emit error_rtl
+    | _ => emit error_rtl
+end.
+\end{lstlisting}
+
+The semantics of the processor are basically correct, remaining work
+would be in implementing the remainder of the instruction set and
+developing proof automation to make it easier to develop with.
+
+
+\subsection{Extraction}
+As a last note, the designs can be extracted into running programs in
+Ocaml using the Coq extraction facilities. This is of dubious value
+given that mostly the correctness of designs is interesting (and can
+thus be done from within Coq), but it could be useful for running
+tests on prototype designs before trying to formally prove them.
+
 \section{Related Work}
 Several projects have related goals:
 
@@ -252,22 +517,25 @@ Several projects have related goals:
 Bedrock is a project which facilitates the formal verification of low
 level code. It is implemented as a Coq Library, but it provides
 significant enough extensions and capabilities that it is more aptly
-described as a language for separation logic. Bedrock provides significant
-instruction on the implementation of a separation logic system\cite{bedrock1}\cite{bedrock2}.
+described as a language for separation logic. Bedrock provides
+significant instruction on the implementation of a separation logic
+system\cite{bedrock1}\cite{bedrock2}.
 \subsubsection{Reflex}
 Reflex is a project which makes a verified message passing kernel that
 can interpret a set of user defined rules about non interference and
 causality. Reflex is not intended for embedded systems, but the model
 of non interference and causality is instructive for a style in which
-one might prove properties about an embedded system \cite{reflex}. For example, one
-such property could be that seems natural to try to prove in a Reflex
-style could be that at least 100 cycles pass in between asking for and
-reading a value from an Analog Digital Converter.
+one might prove properties about an embedded system \cite{reflex}. For
+example, one such property could be that seems natural to try to prove
+in a Reflex style could be that at least 100 cycles pass in between
+asking for and reading a value from an Analog Digital Converter.
 \subsubsection{Correctness Proofs for Device Drivers in Embedded Systems}
-Duan and Regher\cite{drivers} discuss a system which can verify low-level device drivers.
-Their approach allows for separately clocked components interactions to be modeled and verified.
-They use a pre-existing ARMv4 simulator and develop a formal semantics for interacting with UART. Their proofs are all manual,
-and they hope to build proof automation on top of their proofs for UART.
+Duan and Regher\cite{drivers} discuss a system which can verify
+low-level device drivers.  Their approach allows for separately
+clocked components interactions to be modeled and verified.  They use
+a preexisting ARMv4 simulator and develop a formal semantics for
+interacting with UART. Their proofs are all manual, and they hope to
+build proof automation on top of their proofs for UART.
 \subsubsection{RockSalt}
 This effort derives heavily from RockSalt. RockSalt was a project to
 write a formally proven version of Native Client(NaCl), Google's tool
@@ -279,164 +547,36 @@ A major part of the RockSalt contribution was an excellent model of
 Register Transfer Language on top of which they modeled MIPS and x86
 processors. The ability to end-to-end check properties of the binary
 is a powerful tool in guaranteeing functional correctness. Their
-effort is very instructive in the implementation of V-EmRALD.
+effort was very instructive in the implementation of the 8051
+model; it is an adaptation of their code.
 \subsubsection{Model Checking Software for Microcontrollers}
 This project formally models an 8-bit Atmega microcontroller.
 The project reasons about assembly code, but is designed to have proof
 automation for high level theorems from C, C++, and other programming langauges.
 There does not seem to be facilities for run time verifition \cite{mcsm}.
 
-\section{Overview}
+\subsubsection{An Approach for the Formal Verification of DSP Designs
+  using Theorem Proving}
+This project is very similar in nature to VerifiedDSP. They
+implemented a similar architecture using HOL. However, their
+implementation does not have a full microcontroller, just a Register
+Transfer Logic. They prove correct an FFT algorithm in this manner,
+and then are able to export it into a netlist for hardware synthesis.
+They seem to lack an elegant method of connecting modules together,
+unlike the wiring construct in VerifiedDSP.  There is no source code
+available for their implementation\cite{dspprove}.
 
-The core of a V-EmRALD checkable program is a single control loop. The
-control loop will be a terminating sequence of 
-polling pins and and handling conditions. All of the handlers can be
-padded out such that the loop takes a constant amount of time. The
-terminating sequence will then be looped forever.
-\begin{lstlisting}[caption={The control loop here first polls port 1, then checks pin 0 and jumps to the appropriate handler.
-      Some more complicated logic is also shown which will handle
-      device 3 if both pin 1 or 2 are high, device 2 if pin 1 is high
-      and pin 2 is low, and device 1 if pin 2 is high and pin 1 is
-      low.},
-  label={lst:ControlLoop}]
-  loop:
-  mov a, P1     
-  jb a.0, HandleDevice0
-  jnb a.1, skip1
-  jb a.2, HandleDevice3
-  ljmp HandleDevice2
-  skip1:
-  jb a.2, HandleDevice1
-  ljmp loop
-\end{lstlisting}
-
-Before running the loop, a trusted prelude -- a small piece of
-assembly -- will turns off 8051 features such as interrupts and
-otherwise set up the $\mu C$.
-
-There will be facilities to prove various properties about assembly.
-
-For example, the above control loop would greatly benefit from proofs
-that the handler priorities are correct.  There are some neat tricks
-which could be used to lighten the proof-burden of pin read non
-determinism. One such trick could be, if the hardware designer knows
-that the pin being read is a trigger, it can be marked as high across
-the entire trace. More nuanced theorems would be required for stateful
-loops.
-\vfill
-\begin{lstlisting}[language=Coq, caption=
-    {A couple examples of theorems are potentially easier to read and
-      reason about then the raw assembly code of control
-      loop in Listing~\ref{lst:ControlLoop}},
-  label={lst:ControlLoopTheorems}]
-
-Theorem ctl_lp_p1_0_hi: forall iotrace,
-  at_all_times iotrace
-  (fun t => read t P1.0 = HIGH) ->
-  elem HandleDevice0
-  (trace prog iotrace) /\
-  !(elem HandleDevice3
-  (trace prog iotrace) \/
-  elem HandleDevice2
-  (trace prog iotrace) \/
-  elem HandleDevice1
-  (trace prog iotrace)))
-
-Theorem ctl_lp_p1_210_hi_lo_lo: forall iotrace,
-  at_all_times iotrace
-  (fun t => read t P1.0 = LOW /\
-  read t P1.1 = LOW /\
-  read t P1.2 = HIGH) ->
-  elem HandleDevice2
-  (trace prog iotrace) /\
-  !(elem HandleDevice0
-  (trace prog iotrace) \/
-  elem HandleDevice3
-  (trace prog iotrace) \/
-  elem HandleDevice1
-  (trace prog iotrace))
-\end{lstlisting}
-
-Theorem ctl\_lp\_p1\_0\_hi in Listing~\ref{lst:ControlLoopTheorems} states that for some user defined program, if P1.0 is high at
-all points, then only device 0 will be handled. A more robust, but
-perhaps more difficult proof would rely on the pin taking on either
-value at all reads, but this may not be accurate given peripheral information.
-Theorems about execution time verification could work by having each
-instruction executed under a trace and adding the number of cycles it
-takes under a trace. The run time can be taken between any two labels
--- the code between the labels must provably terminate though. For instance, 
-theorems about proper nop padding and runtime length can be shown.
-
-\begin{lstlisting}[language=Coq, caption=
-    {If a segment of code is properly padded then all all executions
-      take the same amount of time. The definition of proper\_padded
-      is omitted, but it performs some branch expansion},
-  label={lst:NopPad}]
-Defintion proper_padded c : bool := ...
-Theorem loop_const_len: exists L,
-        (forall (c:asm) (t:iotrace),
-        proper_padded c = true ->
-        L = length (trace (run c iotrace))).
-\end{lstlisting}
-Theorem loop\_const in Listing~\ref{lst:NopPad} states that their
-exists a constant amount of time L such that under any io trace (ie,
-values read from pins) during execution, proper\_padded c implies that
-the program c runs a fixed length number of cycles. This means that a
-program checked with proper\_padded can be considered to run a fixed
-length amount of time under any trace.
-
-
-In order to verify such properties, the simulator generates the state
-spaces for the 8051 over a given execution and pin trace, generating
-an execution trace.  The parser checks over the 8051 binary and
-ensures that no unsafe instructions are present, such as setb EA,
-which would enable interrupts.  These implementations are heavliy
-derived from RockSalt \cite{rocksalt}.
-\section{Implementation and Progress}
-V-EmRALD is very much a work in progress. Currently, I am working on
-getting the 8051 assembly to RTL translation functional. This involves
-modifying the RockSalt code to fit the Intel Architecture, as well as
-augmenting on some additional features so as to be able to reason
-about things like timing. This will likely be a somewhat large
-challenge to figure out what the correct semantics are \emph{exactly}
-for the added traces. In order to expediate this process, I will
-initially focus on a subset of approximately 10 mnemonics which
-capture a large swath of 8051 behavior (ie, mov, add, jmp, lcall, and
-ret cover a lot of behavior).
-
-Once the simulator is complete, it will be fairly straightforward to
-implement the parser based on the Rocksalt derivative method as it is
-essentially just punching in a bunch of 1's and 0's from the Intel 8051
-manual.
-
-The next challenge will be to implement an assembler. I plan to make
-this assembler using Coq's Notation feature. The assembly will likely
-be a little bit non standard as it will need to support some special
-types of labels, and may not support certain features standard in
-assemblers such as .equ directives, because such things can be
-accomplished in the coq environment as easily. Making an assembler in
-Coq may have some other benefits in aiding later verifiable macro
-development \cite{coqasm}.
-
-Once this foundation is laid, then I will be in good shape to start
-formally showing the semantics of certain programs. This will again
-present a challenge in developing a semantics which are not only
-useful to embedded systems engineers, but also are amenable to proof
-automation.
-
-Once the above tasks are completed, I will then implement as much of
-the ISA as possible.
-
-If time permits, my final contribution would be in developing a
-test-jig so that I can verify the 8051 similator against
-real hardware.
 \section{Discussion}
-\subsection{Usability}
-V-EmRald cannot prevent all bugs. In order to test the effectiveness
-of such a system, it is imperative to run a user study to see if such
-a model helps. One such user study could testing and timing users on their
-ability to complete the following tasks with and without V-EmRALD (given a small
-hardware test-bench):
+\subsection{Future Work}
+
+
+\subsubsection{Usability Study}
+This framework cannot prevent all classes of bugs. In order to test
+the effectiveness of such a system (once there is more automation), it
+is imperative to run a user study to see if such a model helps. One
+such user study could testing and timing users on their ability to
+complete the following tasks with and without the simulation tools
+(given a small hardware test-bench):
 \begin{enumerate}
 \item
   Write a program which makes an LED blink with a certain frequency
@@ -448,17 +588,29 @@ hardware test-bench):
   Write a program which when a push button is hit, turns one LED on at
   half brightness, and another LED at half brightness otherwise.
 \end{enumerate}
-These tests would determine if V-EmRALD improves a programmer's
+These tests would determine if these tools improves a programmer's
 ability to reason about runtime, non-interference, and memory safety.
-\subsection{Limitations}
-The current plan for V-EmRALD fails to address several key
-embedded system properties.
-\subsubsection{Interrupts}
+
+
+
+\subsubsection{Limitations}
+The current design fails to address several key
+embedded system properties and has a few weaknesses.
+
+\paragraph{Simulator Correctness}
+The simulator is not guaranteed to be correct. In fact, it is
+definitely not correct as certain aspects of the model are not fully
+implemented, such as setting ports IO mode. The model can be proven to
+be consistent within itself (ie, no confused parse), but there is no
+way to check that the model matches the real world 8051. A test-jig
+could be built to verify the 8051 simulator against real hardware.
+
+\paragraph{Interrupts}
 Interrupts are explicitly required to be disabled because they would
 add a lot of additional complexity to the system. One could potentially,
 using an 8051 timers, devise a scheme as follows:
 \vfill
-\begin{lstlisting}[caption={The timer ISR is used to gaurantee a bound on the amount of time interrupt might be executing.}]
+\begin{lstlisting}[caption={The timer ISR is used to guaranteed a bound on the amount of time interrupt might be executing.}]
   timer isr:
   disable interrupts
   go to interrupts_over
@@ -468,16 +620,138 @@ using an 8051 timers, devise a scheme as follows:
   some interruptible loop
   interrupts_over:
 \end{lstlisting}
-Such a scheme allows for a provably bounded window on interrupts; this is of dubious value given that polling would also accomplish
-a similar goal.
-\subsubsection{Hardware Interfaces}
+Such a scheme allows for a provably bounded window on interrupts; this
+is of dubious value given that polling would also accomplish a similar
+goal with more deterministic performance.
+
+\paragraph{More Hardware Interfaces}
 Embedded systems fundamentally interface with hardware, which can have
-difficult to understand behavior.  V-EmRALD does not do much in the
-way of helping a programmer verify that they understood their external
-hardware correctly. However, one exciting possibility would be the
-development of semantics for other peripheral chips.  This would allow
-programmers to verify a deeper model of their designs. However, this
-does not help with unreliable hardware such as sensors or power supply.
+difficult to understand behavior. This work only has the semantics 
+for an 8051 and some simple DSP designs. However, one exciting possibility would be the
+development of semantics for a library peripheral chips.  This would allow
+programmers to verify more complicated and realistic designs.
+
+Furthermore, an additional modulus
+could be added  onto modules to support slower clock cycle than the rest of
+the network, which may be desirable to simulate communicating with
+faster/slower hardware.
+
+\paragraph{Nondeterminism}
+This work does not help with verification given unreliable hardware
+such as sensors or power supply. 
+
+\paragraph{Assembler}
+
+Another challenge would be to implement an assembler so that code in
+higher level expressions can be reliably compiled. Making an assembler in
+Coq may have some other benefits in aiding later verifiable macro
+development \cite{coqasm}. Currently, the standard 8051 as31 compiler
+is used.
+
+\subsection{Reflections on Formal Verification}
+This was my first experience with formal verification. In sum, formal
+verification is hard, very hard.
+
+
+\subsubsection{Code Reuse}
+One of the great promises of formal verification is code reuse. Once
+algorithms or software are proven correct once, they can become a permanent
+fixture and a basis for more formalized software. In theory, at
+least. In practice, I found it very difficult to work with existing
+code bases for a number of reasons. First and foremost, it seems that
+the Coq compiler has breaking changes fairly frequently, as I was
+unable to build fairly recent code from the RockSalt project. The
+reason for this was, it seems, that Coq makes major tradeoffs in the
+proof scripts in terms of variable names. Another factor which made it
+difficult for me was just the overall complexity of the existing
+code. Hacking on something as complex as RockSalt really frustrated
+my progress, when I started developing the more novel parts of this
+project I was able to make a lot more progress because I knew what I 
+wanted and was trying to do. Furthermore, I discovered a bug in the
+RockSalt code and would be interested to see if it exists in the
+main code as well and was not a result of my modifications.
+\begin{lstlisting}[language=Coq, caption={The RockSalt bug: the parser
+helper for immediate constants only reads the MSB of the constant}]
+  Definition bad_immediate_16 := 
+  (field 8) @ ((fun r => Imm16_op
+  (@Word.repr 15 r)) :
+      _ -> result_m operand_t).
+
+  Definition immediate_16 := 
+  (field 16) @ ((fun r => Imm16_op
+  (@Word.repr 15 r)) :
+      _ -> result_m operand_t).
+\end{lstlisting}
+
+\subsubsection{Abandon Proof!}
+Stating Theorems is much easier than proving them, and from my
+experience, a large portion of the benefit of formal verification
+is simply stating the theorems as it forces a deep reflection on the
+architecture and functionality of the code. That said, once I had
+Theorems, proving them seemed to be very difficult, and I abandoned
+many proofs. However, in the process of trying to prove them (and
+failing) I discovered some more critical bugs which prevented any
+progress from proceeding at all, which suggests that trying
+to prove things is useful even if you give up! I also found that
+development went more quickly when I posed the theorems then admitted
+them as I built more architecture.
+
+
+\subsubsection{What Did I Just Prove}
+Getting the higher level specifications correct in a verification effort is
+difficult. What is trying to be built? What semantics should it have?
+When the all the proofs are done, does it actually accomplish the
+desired goal? This is difficult to know.
+
+\subsubsection{Editors}
+I was a vim user before I started writing Coq code. Luckily evil-mode
+lessened the transition burden to emacs, but certainly a new editor
+was a large distraction!
+
+\subsubsection{Time}
+I found it hard to hack lightly on this stuff. Whereas with most
+projects I can make fine progress with an hours time, I almost never
+got anything done within the first three contiguous hours of work on
+this project. This high startup cost made making progress during a
+busy semester hard. However, scheduling large blocks of time to work
+on it was ultimately effective.
+
+\subsubsection{Interactivity}
+This is a really great UI feature for programming, and I'm surprised
+that more languages don't have an interactive compilation mode like
+Coq's. Perhaps it wouldn't be useful in other languages, but I found
+being able to quickly go line by line to be a very intuitive way to
+code compared to my traditional workflow. 
+
+\subsubsection{Overview}
+Despite the obstacles faced, I really enjoyed doing this
+project. Writing Coq code and proofs is insanely addicting; I would
+routinely find myself at 5 in the morning telling myself to go to
+sleep. It is challenging, and sometimes I would spend hours trying to
+prove something trivial. Almost nothing compared to the exhilaration
+I felt when I got a tough proof Qed'd though! The puzzle solving
+nature really does something for me. 
+
+Writing Coq is certainly not like any other traditional programming
+language, including the functional varieties such as Haskell or
+Ocaml. Although it has its negatives, such as poor reusability of code
+and high barriers to entry, the positives outweighed it by far for
+me. Simply put, it's just a lot of fun!
+
+
+\subsection{Conclusion}
+This paper presents a novel framework, VerifiedDSP, which can be used
+to verify and prototype Digital Signal Processing designs in Coq. This
+framework is very flexible, as it can serve as a backbone for
+prototyping digital signal processors because functionality can be
+mocked out and then refined with closer to hardware function
+descriptions (ie, microcontroller binaries or RTL). 
+
+Additionally, this paper details the author's first major experience
+with formal verification techniques. There were several obstacles and
+tactics to get around them that might be good advice for someone just
+starting to explore the field, and can hopefully guide future work in
+making formal methods more accessible.
 
 
 
@@ -489,13 +763,14 @@ does not help with unreliable hardware such as sensors or power supply.
 
 %% This is the text of the appendix, if you need one.
 
-%% \acks
+\acks
+A huge thank you to professors Frans Kaashoek and Nickolai Zeldovich
+for teaching the Certified Systems seminar at MIT. It has been one of
+the most interesting classes I have taken at MIT by far! Without their
+incessant encouragement and support, I would not have been able to complete
+this project.
 
-%% Acknowledgments, if needed.
-
-% We recommend abbrvnat bibliography style.
-% The bibliography should be embedded for final submission.
-\bibliographystyle{abbrv}
+\bibliographystyle{abbrvnat}
 \begingroup
 \raggedright
 \bibliography{paper}
