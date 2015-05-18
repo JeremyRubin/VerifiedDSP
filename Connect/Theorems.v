@@ -15,6 +15,8 @@ Require Import Breadboard.
 Import BB.
 Import IORUN.
 Require Import IOModule.
+Require Import c8051.
+Import i8051_Component.
 Import IO.
 Theorem good_build : valid_wiring (demo1 ~&~ demo2).
 Proof. 
@@ -106,7 +108,7 @@ Proof.
 Qed.
 
 (* joined well formed circuits aren't interfered with by an additional module *)
-Theorem non_interference : forall w w', valid_wiring w ->
+Theorem non_interference1 : forall w w', valid_wiring w ->
                                         valid_wiring  (w ~&~ w') ->
                                         forall n t,
                                           let orig := find_trace t (run w n) in
@@ -119,13 +121,103 @@ Theorem non_interference : forall w w', valid_wiring w ->
                                           end.
 admit.
 Qed.
+Theorem non_interference2 : forall w w', valid_wiring w ->
+                                        valid_wiring w' ->
+                                        valid_wiring  (w ~&~ w') ->
+                                        forall n t,
+                                         find_trace t (run w n)=
+                                         find_trace t (run (w ~&~ w') n).
+admit.
+Qed.
 
 (* Funcs are the same*)
-Definition func_same  := forall tr (i i':IO.func),
-                           match i, i' with
-                             |IO.fn_args n f, IO.fn_args n' f'=>
-                              f tr = f' tr /\ n = n'
-                           end.
+Print IO.trace.
+Definition func_same (i i':IO.func) := forall (tr:IO.trace),
+                                                let lengths := (map (fun x => length x) tr) in 
+                                                let fl := hd 0 lengths in
+                                                fold_left (fun acc  x =>x=fl/\acc)  lengths True->
+                                             match i, i' with
+                                               |IO.fn_args n f, IO.fn_args n' f'=>
+                                                length tr = n ->
+                                                f tr = f' tr /\ n = n'
+                                             end.
+Compute (length [1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1]).
+
+Theorem simulates :  func_same (i8051_Component [2;0;0] threshold dac) (IO.fn_args (8*4) (fun _ => 0)).
+Proof.
+
+  unfold dac.
+  unfold func_same.
+  intros.
+  unfold i8051_Component.
+  intros.
+
+  destruct tr as [| a l] .
+  inversion H0.
 
 
+
+repeat ( let x:= fresh in destruct l as [| x  l]; inversion H0).
+
+unfold length in *.
+split;auto.
+
+
+
+
+
+unfold map, fold_left, hd in H.
+
+
+decompose [and] H.
+
+unfold traces.
+
+simpl.
+unfold to_trace, condense', condense.
+
+
+unfold run_8051_bin_string, run_8051, i8051Semantics.dump_state, i8051Semantics.load_code_bytes_bin, i8051Semantics.nsteps_init.
+simpl.
+
+
+
+
+unfold i8051Semantics.nsteps, i8051Semantics.step.
+unfold  i8051Semantics.run_rep .
+
+
+
+unfold i8051Semantics.i8051_RTL.flush_env.
+unfold i8051Semantics.i8051_RTL.get_loc,
+i8051Semantics.fetch_instruction,
+i8051Semantics.RTL_step_list,
+i8051Semantics.i8051_Decode.instr_to_rtl.
+
+
+
+unfold i8051Semantics.i8051_Decode.runConv,
+i8051Semantics.i8051_Decode.conv_ANL,
+i8051Semantics.i8051_Decode.EMIT,
+i8051Semantics.i8051_Decode.conv_SETB,
+i8051Semantics.i8051_Decode.conv_CLR,
+i8051Semantics.i8051_Decode.conv_LJMP,
+i8051Semantics.i8051_Decode.conv_JMP,
+i8051Semantics.i8051_Decode.conv_NOP.
+
+
+unfold i8051Semantics.i8051_RTL.CodeMap.set.
+unfold i8051Semantics.i8051_RTL.CodeIndexed.index.
+unfold Maps.PMap.set.
+unfold Maps.PTree.set.
+
+unfold Maps.ZIndexed.index, i8051Semantics.i8051_RTL.CodeMap.init, Maps.PMap.init, fst, snd.
+unfold dac.
+unfold map.
+unfold i8051Semantics.parse_instr.
+unfold i8051Semantics.parse_instr_aux.
+
+  admit.
+
+  Qed.
 Definition wrapper := IO.func -> IO.func.

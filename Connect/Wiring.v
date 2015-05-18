@@ -130,7 +130,7 @@ Module Wiring(IO:IO_SIG).
     end.
   Definition rewire w1 w2 : wiring :=
     let m := fold_left max (pins w2) 0 in
-    rewire_offset w1 m.
+    rewire_offset w1 (m+1).
 
   Theorem rewire_safe : forall w w',
                           valid_wiring w ->
