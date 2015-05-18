@@ -1,0 +1,11 @@
+
+This repo presents a new framework, VerifiedDSP, for programming 8-bit
+Intel 8051 series microcontrollers and designing embedded Digital
+Signal Processing systems. It includes an 8051 simulator, a
+prototyping framework for mocking out specifications, and some higher
+level constructs to help programmers formalize the behavior and run
+time of control loops.
+
+
+It will be hard to make if you don't have a lot of things installed
+(ie, coq, Ocaml core, as31). Shoot me a message if you'd like help.
