@@ -226,7 +226,10 @@
                      \@setflag \@ninepoint = \@false
                      \@setflag \@explicitsize = \@true}
 
-\DeclareOption{12pt}{\@unsupportedoption{12pt}}
+
+\DeclareOption{12pt}{\PassOptionsToClass{12pt}{article}%
+                     \@setflag \@ninepoint = \@false
+                     \@setflag \@explicitsize = \@true}
 
 \DeclareOption{a4paper}{\@unsupportedoption{a4paper}}
 
@@ -580,8 +583,7 @@
     \parbox[b]{20pc}{%
       \scriptsize
       \if \@preprint
-        [Copyright notice will appear here
-         once 'preprint' option is removed.]\par
+       \par
       \else
         \@toappear
       \fi
