@@ -49,69 +49,123 @@ Qed.
 
 Compute (find_trace 10 (run (demo1 ~&~ demo2) 10)).
 
-Theorem no_modify_history_update: forall pin_tr upd n,
-                                    let a := (find_trace n (update_trace pin_tr upd [])) in
-                                    let b := find_trace n pin_tr in
-                                    match (a, b) with
-                                      | (Some (a'::rest), Some rest') =>
-                                        rest = rest'
-                                      | _ => True
-                                    end.
-  intros.
-  unfold a, b. 
-  auto.
-  generalize dependent pin_tr.
-  induction upd.
-  intros.
-  induction pin_tr.
-  simpl.
-  auto.
-  simpl.
-  auto.
-  intros.
-  remember (find_trace n (update_trace pin_tr (a::upd) [] )).
-  destruct o; auto.
-  destruct  l; auto.
-  remember (find_trace n pin_tr).
-  destruct o; auto.
-  admit.
-Qed.
+Require Import Vector.
+Import VectorNotations.
+Import Vector.
+Open Local Scope vector_scope.
+Check update_trace.
+(* Theorem no_modify_history_update: *)
+(*   forall  c m  (pin_tr: t (nat * t IO.t c) m) (upd: t (nat *  IO.t) m) n, *)
+
+(*     let a   := (find_trace n (update_trace  pin_tr upd)) in *)
+(*     let b := find_trace n pin_tr in *)
+(*     match (a, b) with *)
+(*       | (Some (a'::rest), Some rest') => *)
+(*         length (to_list rest) = length (to_list rest') *)
+(*       | _ => True *)
+(*     end. *)
+(*   intros. *)
+(*   unfold a, b. *)
+  
+(*   intros. *)
+(*   unfold a, b.  *)
+(*   auto. *)
+(*   generalize dependent pin_tr. *)
+(*   induction upd. *)
+(*   intros. *)
+(*   induction pin_tr. *)
+(*   simpl. *)
+(*   auto. *)
+(*   simpl. *)
+(*   auto. *)
+(*   intros. *)
+
+(*   remember (find_trace n pin_tr). *)
+(*   destruct o; auto. *)
+(*   auto. *)
+
+(*   admit. *)
+(*   admit. *)
+(*   admit. *)
+(* Qed. *)
 
 Check run.
-Theorem no_modify_history: forall n w t,  find_trace t (run  w n) = option_map (@tl IO.t) (find_trace t (run w (S n))).
+Theorem no_modify_history:
+  forall n w t,
+    find_trace t (run  w n) = option_map (tl) (find_trace t (run w (S n))).
 Proof.
-  admit.
-  (* intros. *)
-  (* induction n. induction w. *)
-  (* auto. *)
-  (* destruct a. *)
+  intros.
+  induction w.
+  unfold run.
+  unfold pin_trace_gen',
+  pins, of_list, all_pins',
+  map.
+  simpl.
+  auto.
 
+  vm_compute.
 Qed.
 
 Check no_modify_history.
-Theorem alternates:  forall n, let tr := run demo1 n in
+Compute  (run demo1 1).
+Theorem alternates':  forall n:nat, let tr := run demo1 n in
                                let a :=find_trace 8 tr in
                                match a with
-                                 | Some ( 0::1::rest)
-                                 | Some (1::0::rest)  => True
-                                 | Some [1] | Some [0] | Some [] => True
+                                 | Some (1::rest)
+                                 | Some (0::rest) 
+                                 | Some ([] as rest) => True
                                  | _ => False
+                               end.
+Proof.
+  compute.
+
+  admit.
+Qed.                                          
+Theorem alternates:  forall n, let tr := find_trace 8 (run demo1 n) in
+                               let tr' := find_trace 8 (run demo1 (S n)) in
+                               match tr, tr' with
+                                 | Some [], Some [1] 
+                                 | Some ( 0::_), Some (1::_)
+                                 | Some (1::_), Some (0::_)  => True
+                                 | _,_ => False
                                           
                                end.
 Proof.
-  intros. destruct n.
-  simpl.
+  intros.
+  destruct tr.
+  destruct tr'.
+  
+  vm_compute.
   auto.
+
   unfold a.
   unfold tr.
   unfold run.
-  remember (pin_trace_gen demo1).
-  auto.
-  destruct l;auto.
+  unfold run'.
+  fold run'. 
+
+  fold run'.
+  vm_compute.
+  unfold demo1 in *.
+  unfold integrator, incrementor, alternator, zero_rail in *.
+  unfold Common.suml, Common.len in *.
+  destruct pin_trace_gen;auto.
   simpl.
   auto.
-  admit.
-  admit.
+  unfold run'.
+  unfold find_trace.
+  unfold step.
+  unfold update_trace.
+  unfold remove_none.
+  unfold next_value.
+  unfold map.
+  simpl.
+
+  unfold Vector.hd.
+  unfold length.
+  
+  unfold alt.
+  auto.
 Qed.
 
 (* joined well formed circuits aren't interfered with by an additional module *)

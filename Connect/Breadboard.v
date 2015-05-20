@@ -45,11 +45,14 @@ Module BB.
   (* End Incrementor_Spec. *)
 
 
-  Fixpoint alt x start:=
+  Fixpoint alt_ x:=
     match x with
-      | O => start
-      | S n => alt n (if beq_nat start 0 then 1 else 0)
+      | S O => false
+      | O => true
+      | S (S n) => alt_ n 
     end.
+  Definition alt x:= if alt_ x then 1 else 0.
+  
   (* Module Alternator_Spec. *)
   (*   Require Import Arith.Even. *)
   (*   Definition io (x:list IO.t):IO.t := alt (length x) 1. *)
@@ -62,7 +65,7 @@ Module BB.
 
   Definition integrator  : IO.func 1 :=  (fun x =>suml (Vector.hd x)).
   Definition incrementor :IO.func 1 := (fun x =>len (Vector.hd x)).
-  Definition alternator : IO.func 1:= (fun x => alt (length (Vector.hd x)) 1).
+  Definition alternator : IO.func 1:= (fun x => alt (length (Vector.hd x))).
   Definition zero_rail   : IO.func 1 :=(fun _ =>0).
 
   Definition delay_n n default : IO.func 1:= (fun x => nth n (Vector.hd x) default).
@@ -127,6 +130,7 @@ Module BB.
 
   Definition run := run.
 
+  Compute (run demo1 100).
   Lemma valid_demo3: valid_wiring (demo3 [0] 6).
     admit. (* THis works just slowly *)
     (* autowire. *)
