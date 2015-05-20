@@ -579,38 +579,36 @@ Lemma dnf_corr2 t (p:parser t) s v :
   star_free p = true -> 
   in_parser p s v.
 Proof.
+
+
+
+
+
+
   induction p ; simpl ; unfold never ; intros ; repeat pinv ; eauto.
   generalize (dnf p1) (dnf p2) IHp1 IHp2 H ; clear IHp1 IHp2 H Heqx Heqy.
   induction l ; simpl ; unfold never in * ; intros ; repeat pinv.
   generalize (in_app_alts _ _ H). clear H ; intros. destruct H.
   clear IHl. induction l0 ; simpl in * ; unfold never in * ; pinv.
-  destruct H. pinv. econstructor. eapply IHp1 ; eauto.
+  destruct H. pinv. econstructor. eapply IHp1 ; eauto.  eauto.
+  reflexivity.
+  reflexivity.
+  eapply IHl0.
 
-  eapply IHp2 ; eauto.  eauto. auto. auto.
-  eapply IHl. intros. eapply IHp1. eapply Alt_right_pi. eauto. auto. auto.
+  intros.
+  apply IHp2.
+  auto.
+  auto.
+  auto.
 
-
-  intros. eapply IHp2. eapply H0. auto.
-
-  apply H.
-  unfold alts in H.
-  apply X.
-  unfold alt in H.
-  Print dnf.
-  unfold alts in H.
-  induction dnf in H.
-  simpl in H.
-  unfold dnf in H.
-  apply dnf_corr1 in H.
-  SearchAbout dnf.
   
-  eapply IHl. intros. eapply IHp1. eapply Alt_right_pi ; eauto. auto. 
+  eapply IHl. intros. eapply IHp1. eapply Alt_right_pi ; eauto. auto.
   eapply IHp2. auto. generalize (in_app_alts _ _ H). intros. pinv ; eauto.
-  generalize (dnf p) IHp H ; clear IHp H. induction l ; simpl ; unfold never ; 
-  intros ; repeat pinv. econstructor. eapply IHp. eapply Alt_left_pi. eauto.
-  auto. auto. eapply IHl. intros. eapply IHp. eapply Alt_right_pi ; eauto. 
+  generalize (dnf p) IHp H ; clear IHp H. induction l ; simpl ; unfold never ;
+                                          intros ; repeat pinv. econstructor. eapply IHp. eapply Alt_left_pi. eauto.
+  auto. auto. eapply IHl. intros. eapply IHp. eapply Alt_right_pi ; eauto.
   auto. auto.
-Qed.
+Qed.  
 
 (** All of the parsers in [ps] are [simple_determ]. *)
 Fixpoint simple_determ_list t (ps:list (parser t)) : bool := 
