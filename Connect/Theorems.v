@@ -90,24 +90,122 @@ Check update_trace.
 (* Qed. *)
 
 Check run.
+Lemma nil_run:
+  
+  forall x, run List.nil x =[].
+  Proof.
+              
+  intros. induction x.
+  compute; auto.
+  unfold run.
+  fold run.
+  rewrite IHx.
+  auto.
+  Qed.
 Theorem no_modify_history:
-  forall n w t,
+  forall n w t,  valid_wiring w ->
     find_trace t (run  w n) = option_map (tl) (find_trace t (run w (S n))).
 Proof.
   intros.
   induction w.
-  unfold run.
-  unfold pin_trace_gen',
-  pins, of_list, all_pins',
-  map.
-  simpl.
-  auto.
+  auto. 
 
-  vm_compute.
+  unfold find_trace.
+  rewrite nil_run.
+  rewrite nil_run.
+  auto.
+  induction n .
+
+  admit.  admit.
+
 Qed.
 
 Check no_modify_history.
 Compute  (run demo1 1).
+
+Lemma alt_n_SSn : forall n, 
+                    alt  n  = alt  (S (S n)) .
+Proof.
+  intros.
+  auto.
+Qed.
+Lemma alt_n_Sn : forall n,
+
+                   alt n <> alt (S n).
+  Proof.
+
+  intros.
+  induction n.
+  unfold alt.
+  
+  unfold alt_.
+  auto.
+
+  unfold alt.
+  
+  auto.
+Qed.
+
+  Lemma alt_in_01 : forall n, alt n < 2.
+
+    intros.
+    unfold alt.
+    destruct alt_; auto.
+    Qed.
+
+  Lemma list_len_cons : forall {A} (l:list A) (b:A), S (length l )= length (List.cons b l).
+  Proof.
+intros.
+auto.
+    Qed.
+  Lemma l1 : forall  n, alt n = alt (S (S n)) -> alt n <2 -> (alt n <> alt (S n)) ->  alt (S n) = 0 -> alt n =1.
+    intros.
+    
+    unfold not in *.
+    omega.
+    Qed.
+  Lemma l2 : forall n, alt (S n) = 0 -> alt n = 1.
+    intros.
+    apply l1.
+    apply alt_n_SSn.
+    apply alt_in_01.
+    apply alt_n_Sn.
+    apply H.
+    Qed.
+
+  Lemma l3 : forall  n, alt n = alt (S (S n)) -> alt n <2 ->
+                        (alt n <> alt (S n)) ->  alt (S n) = 1 -> alt n =0.
+    intros.
+    
+    unfold not in *.
+    omega.
+    Qed.
+  Lemma l4 : forall n, alt (S n) = 1 -> alt n = 0.
+    intros.
+    apply l3.
+    apply alt_n_SSn.
+    apply alt_in_01.
+    apply alt_n_Sn.
+    apply H.
+    Qed.
+
+Lemma alternates' :
+  forall l b,
+            alternator ([List.cons b l]) = 1 ->
+    alternator [l] = 0.
+Proof.
+  intros. 
+  auto.
+
+  unfold alternator, hd in *.
+  rewrite  <- list_len_cons in H.
+  apply l4.
+  
+  apply H.
+  
+  Qed.
+
+
 Theorem alternates':  forall n:nat, let tr := run demo1 n in
                                let a :=find_trace 8 tr in
                                match a with
@@ -117,6 +215,7 @@ Theorem alternates':  forall n:nat, let tr := run demo1 n in
                                  | _ => False
                                end.
 Proof.
+
   compute.
 
   admit.
