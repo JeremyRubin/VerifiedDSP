@@ -18,21 +18,24 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 **)
+Require Import Vector.
+Import Vector.
 Module Type IO_SIG.
   Variable t : Type.
-  Variable trace : Set.
-  Variable func : Set.
-  Variable nargs : func -> nat.
+  Variable trace : nat -> Type.  (* forall n, Vector.t Set n . *)
+  Variable func :  Type.
+  (* Variable nargs : func -> nat. *)
 End IO_SIG.
 
 Module IO.
   Definition t :=  nat.
-  Definition trace := list (list t).
-  Inductive func_ :=
-  | fn_args : nat -> (trace -> t) -> func_.
-  Definition func := func_.
-  Definition nargs f :=
-    match f with
-      | fn_args n _ => n
-    end.
-End IO.
+  Definition trace := forall n, Vector.t t n.
+  Definition traces :=  fun n => Vector.t (Vector.t t n) .
+  Definition func : nat->Type := fun n => (Vector.t (list IO.t ) n  -> t).
+  Check func.
+  (* Definition nargs (f:forall n, IO.func n) := match f with *)
+  (*                                                 | IO.func n=> n *)
+  (*                                                 end. *)
+                          End IO.
+Definition f  : (IO.func 10) := fun x =>(10).
+Definition NilTrace : IO.trace := Vector.const 0.

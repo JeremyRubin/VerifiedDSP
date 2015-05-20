@@ -29,13 +29,15 @@ Open Scope list_scope.
 
 Require Import IOModule.
 
-Module Wiring(IO:IO_SIG).
+Require Import Vector.
+Import Vector.
+Module Wiring.
   Inductive component :=
-  | watch_set :   list nat -> IO.func -> nat ->  component
-  | just_set : IO.func -> nat -> component
+  | watch_set :   forall {n}, Vector.t nat n -> IO.func n -> nat ->  component
+  | just_set : IO.func 1 -> nat -> component
   | doc :  nat -> string -> component.
   Definition wiring := list component.
-  Notation  "w //  m ~> f ~>  n" := ((watch_set m f n) :: w) (at level 80, m at next level) : wiring_scope. 
+  Notation  "w // m ~> f ~>  n" := ((watch_set m f n) :: w) (at level 80, m at next level) : wiring_scope. 
   Notation  "w */  f ~>  n" := ((just_set f n) :: w) (at level 80, m at next level): wiring_scope. 
   Notation "w1 ~&~ w2" := (w1 ++ w2) (at level 80) : wiring_scope.
   Notation "w # p c " := ((doc p c)::w) (at level 80, p at level 0) : wiring_scope.
@@ -47,7 +49,7 @@ Module Wiring(IO:IO_SIG).
       | [] => acc
       | w::w' => 
         match w with
-          | watch_set from fn to => docstring' w' acc
+          | watch_set n from fn to => docstring' w' acc
           | just_set  fn to =>docstring' w' acc
           | doc  p c =>
             let n : string := (String (ascii_of_nat p) "") in 
@@ -61,7 +63,7 @@ Module Wiring(IO:IO_SIG).
       | [] => s
       | w::w' =>
     match w with 
-      | watch_set  from fn to =>
+      | watch_set n from fn to =>
         output_pins w' (add_i  to s)
       | just_set  fn to =>
         output_pins w' (add_i to s)
@@ -75,7 +77,7 @@ Module Wiring(IO:IO_SIG).
       | [] => s
       | w::w' =>
         match w with 
-          | watch_set  from fn to =>
+          | watch_set n from fn to =>
             output_pins w'
                         (fold_left (fun se f => add_i f se) s  from)
 
@@ -84,21 +86,22 @@ Module Wiring(IO:IO_SIG).
         end
     end.
 
-  Fixpoint all_pins' l s: set nat :=
+  Fixpoint all_pins' l (s:set nat): set nat :=
     let add_i := set_add%nat nat eq_nat_dec in
     match l with
       | [] => s
       | w::w' =>
     match w with 
-      | watch_set  from fn to =>
+      | watch_set n  from fn to =>
         all_pins' w'
-                  (add_i to (fold_left (fun se f => add_i f se) s  from))
+                  (let new := (to::(to_list from)) in
+                  (List.fold_left (fun se f => add_i f se) s new))
 
       | just_set  fn to =>  all_pins' w' (add_i to s)
       | doc  _ _ =>  all_pins' w' s
                                end
     end.
-  Definition pins w := all_pins' w nil.
+  Definition pins w := all_pins' w List.nil.
   (* Checks that all observers have a source and that only one setter per nat *)
   Fixpoint valid_wiring' l ins outs: Prop :=
     let add_i := set_add%nat nat eq_nat_dec in
@@ -112,9 +115,9 @@ Module Wiring(IO:IO_SIG).
         (intersect ins outs) = ins
       | w::w' =>
     match w with 
-      | watch_set  from fn to =>
+      | watch_set n from fn to =>
         notin to outs /\
-        IO.nargs fn = length from /\
+        (* IO.nargs fn = length from /\ *)
         valid_wiring' w'
                       ( fold_left  (fun s f => add_i f s) ins from) (add_i to outs)
       | just_set  fn to=>
@@ -124,7 +127,7 @@ Module Wiring(IO:IO_SIG).
                                    end
     end.
   Definition valid_wiring w : Prop :=
-    valid_wiring' w nil nil.
+    valid_wiring' w List.nil List.nil.
 
   Require Import Omega.
   Ltac autowire :=
@@ -136,16 +139,16 @@ Module Wiring(IO:IO_SIG).
   (* Rewire w1 so it won't interfere with w2 *)
   Definition wire_add_offset n w1: component :=
     match w1 with
-      | watch_set  from fn to =>
-        (watch_set   (map (fun x=>x+ n)from) fn (to+n))
+      | watch_set n from fn to =>
+        (watch_set  (Vector.map  (fun x=>x+ n) from) fn (to+n))
       | just_set  fn to =>
         just_set fn (to+n) 
       | doc  p c =>  
         doc   (p+n) c
     end.
   Definition rewire w1 w2 :wiring :=
-    let m := fold_left max (pins w2) 0 in
-    map (wire_add_offset (m+1)) w1.
+    let m := List.fold_left max (pins w2) 0 in
+    List.map (wire_add_offset (m+1)) w1.
 
   Theorem rewire_safe : forall w w',
                           valid_wiring w ->
@@ -155,12 +158,12 @@ Module Wiring(IO:IO_SIG).
     induction w.
     auto.
     unfold rewire.
-    assert (H1:forall (A B: Type) (a:A) (b:list A) (f: A-> B) f, map f (a::b) = (f a) :: (@map A B  f b)).
+    assert (H1:forall (A B: Type) (a:A) (b:list A) (f: A-> B) f, List.map f (a::b) = (f a) :: (@List.map A B  f b)).
     intros.
     auto.
     rewrite H1; auto.
 
-    remember (wire_add_offset ((fold_left max (pins w') 0)+1)) as f.
+    remember (wire_add_offset ((List.fold_left max (pins w') 0)+1)) as f.
     unfold valid_wiring.
     unfold valid_wiring'.
     admit.

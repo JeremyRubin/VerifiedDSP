@@ -70,9 +70,9 @@ Module i8051_Component.
   (* Variable threshold : nat. *)
   Definition threshold := 1.
   Search nat.
-  Definition digitizer : IO.func :=
-    IO.fn_args 1 (fun x =>
-                    match threshold - (hd 0 (hd [] x)) with
+  Definition digitizer : IO.func 1:=
+    (fun x =>
+                    match threshold - (hd 0 (Vector.hd  x)) with
                       | 0 => 1
                       | _ => 0
                     end).
@@ -130,28 +130,36 @@ Module i8051_Component.
       | _,_,_,_ => []
     end.
 
-  Definition traces (tr:trace) thresh :=
-    let digitized := map (map (fun x => NPeano.ltb x thresh)) tr in
+  Require Import Vector.
+  Import VectorNotations.
+  Import Vector.
+  Require Import Fin.
+  Import Fin.
+  Close Scope vector_scope.
+  Open  Scope list_scope.
+  Definition traces (tr:Vector.t (list nat) 32) thresh :=
+    let f := Vector.map (List.map (fun x => NPeano.ltb x thresh)) in
+    let digitized := to_list( f tr) in
     
+
     match digitized with
         |(p00::p01::p02::p03::p04::p05::p06::p07::
            p10::p11::p12::p13::p14::p15::p16::p17::
            p20::p21::p22::p23::p24::p25::p26::p27::
-           p30::p31::p32::p33::p34::p35::p36::p37::nil) =>
+           p30::p31::p32::p33::p34::p35::p36::p37::List.nil) =>
          
         to_trace (condense' p07 p06 p05 p04 p03 p02 p01 p00)
          (condense' p17 p16 p15 p14 p13 p12 p11 p10)
          (condense' p27 p26 p25 p24 p23 p22 p21 p20)
          (condense' p37 p36 p35 p34 p33 p32 p31 p30)
-        |_ => []
+        |_ => List.nil
     end.
         
 
     
 
     
-  Definition i8051_Component bin threshold conv:=
-    fn_args (8*4) (fun t =>
+  Definition i8051_Component bin threshold (conv: option ports -> nat):= (fun t =>
                      let ps := traces t threshold in
                      conv (run_8051_bin_string bin ps)).
   

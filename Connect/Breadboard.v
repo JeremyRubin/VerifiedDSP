@@ -60,40 +60,39 @@ Module BB.
   (* Module Alternator := Component(IO)(Alternator_Spec). *)
 
 
-  Definition integrator  : IO.func := IO.fn_args 1 (fun x =>suml (hd [] x)).
-  Definition incrementor :IO.func := IO.fn_args 1
-                                                (fun x =>len (hd [] x)).
-  Definition alternator : IO.func :=IO.fn_args 1
-                                               (fun x =>
-                                                  alt (length (hd [] x)) 1).
-  Definition zero_rail   : IO.func := IO.fn_args 0 (fun _ =>0).
+  Definition integrator  : IO.func 1 :=  (fun x =>suml (Vector.hd x)).
+  Definition incrementor :IO.func 1 := (fun x =>len (Vector.hd x)).
+  Definition alternator : IO.func 1:= (fun x => alt (length (Vector.hd x)) 1).
+  Definition zero_rail   : IO.func 1 :=(fun _ =>0).
 
-  Definition delay_n n default : IO.func := IO.fn_args 1
-                                                       (fun x => nth n (hd [] x) default).
+  Definition delay_n n default : IO.func 1:= (fun x => nth n (Vector.hd x) default).
 
 
   Open Scope wiring_scope.
+  Require Import Vector.
+  Import VectorNotations.
+  Open Scope vector_scope.
 
-  Definition demo1 := [] */  zero_rail ~> 0
+  Definition demo1 := List.nil */  zero_rail ~> 0
                            //  [5] ~> integrator~> 6
                            // [2] ~> integrator~> 3
                            */ incrementor ~> 2
-                           */ IO.fn_args 0 (fun _=> 10) ~> 5
+                           */  (fun _=> 10) ~> 5
                            */ alternator ~> 8
                            # 3 "Integrated incrementor"
                            # 3 "Integrated incrementor".
 
   Compute (docstring demo1).
-  Definition demo2 := [] */integrator ~> 9
+  Definition demo2 := List.nil */integrator ~> 9
                            // [6] ~> delay_n 5 0 ~> 10.
 
 
 
 
   Definition demo3 bin threshold  :=
-    [] // (seq 0 32) ~> i8051_Component bin threshold dac ~> 32
+    List.nil // Vector.of_list(seq 0 32) ~> i8051_Component bin threshold dac ~> 32
          ~&~
-         [] */ zero_rail ~> 0
+         List.nil */ zero_rail ~> 0
          */ zero_rail ~> 1
          */ zero_rail ~> 2
          */ zero_rail ~> 3
