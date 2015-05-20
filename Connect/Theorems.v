@@ -76,28 +76,16 @@ Theorem no_modify_history_update: forall pin_tr upd n,
   destruct o; auto.
   admit.
 Qed.
-Theorem step_history_safe: forall l w n, 
-                             l = tl (step' w l n).
-  admit.
-Qed.
 
-Theorem no_modify_history: forall n w,  run  w n = tl (run w (S n)).
+Check run.
+Theorem no_modify_history: forall n w t,  find_trace t (run  w n) = option_map (@tl IO.t) (find_trace t (run w (S n))).
 Proof.
-  intros.
-  induction n.
-  unfold run, run'. 
-  remember (pin_trace_gen w).
-  apply step_history_safe.
-  unfold run.
-  remember (pin_trace_gen w).
-  unfold run'.
   admit.
-  (*  unfold run, run'. *)
+  (* intros. *)
+  (* induction n. induction w. *)
+  (* auto. *)
+  (* destruct a. *)
 
-  (* apply step_history_safe. *)
-  
-  (*  simpl. *)
-  (*  apply no_modify_history_update. *)
 Qed.
 
 Check no_modify_history.
@@ -190,13 +178,13 @@ unfold map, fold_left, hd in H.
 
 decompose [and] H.
 
-unfold traces.
 
+unfold run_8051_bin_string, run_8051, i8051Semantics.dump_state, i8051Semantics.load_code_bytes_bin, i8051Semantics.nsteps_init.
+unfold traces.
+unfold map. simpl.
 simpl.
 unfold to_trace, condense', condense.
 
-
-unfold run_8051_bin_string, run_8051, i8051Semantics.dump_state, i8051Semantics.load_code_bytes_bin, i8051Semantics.nsteps_init.
 simpl.
 
 
@@ -231,12 +219,10 @@ unfold Maps.PMap.set.
 unfold Maps.PTree.set.
 
 unfold Maps.ZIndexed.index, i8051Semantics.i8051_RTL.CodeMap.init, Maps.PMap.init, fst, snd.
-unfold dac.
-unfold map.
 unfold i8051Semantics.parse_instr.
 unfold i8051Semantics.parse_instr_aux.
+destruct r.
 
-  admit.
-
+admit.
   Qed.
 Definition wrapper := IO.func -> IO.func.

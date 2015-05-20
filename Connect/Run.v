@@ -68,31 +68,35 @@ Module IORUN.
       | [] => acc
     end.
   Print IO.func.
-  Fixpoint step' w pt (u : list (nat * IO.t))  :=
-    let add_i := set_add in 
+  Fixpoint next_value pt  w  :=
     match w with 
-      | base  =>
-        update_trace pt (u) nil
-      | watch_set w' from (IO.fn_args n fn) to =>
+      | watch_set  from (IO.fn_args n fn) to =>
         let o_traces := (find_traces from pt) in
         match o_traces with
-          | None => pt
+          | None => None
           | Some traces =>
-            step' w' pt ((to, fn traces )::u)
+           Some (to, fn traces )
         end
-      |  just_set w' (IO.fn_args n fn) to =>
-         step' w' pt  ((to, fn [any_trace  pt ])::u)
-      | join w1 w2 =>
-        app (step' w2 pt [])  (step' w1 pt u)
-      | doc w' _ _ => step' w' pt u
+      |  just_set  (IO.fn_args n fn) to =>
+         Some (to, fn [any_trace  pt ])
+      | doc _ _ => None
     end.
-  Definition step w :=
-    step' w (pin_trace_gen w) [].
+  Fixpoint remove_none {T: Type} (l:list (option T)) :=
+    match l with
+        | [] => []
+        | l'::l'' => match l' with
+                       | Some v => v::(remove_none  l'')
+                       | None => remove_none  l''
+                     end
+    end.
+  
+  Definition step w pt :=
+  update_trace pt (remove_none (map (next_value pt ) w)) [].
 
   Fixpoint run' (w:wiring) (pt: list (nat * list IO.t)) fuel  :=
     match fuel with
       | O => pt
-      | S n => run' w (step' w pt []) n
+      | S n => run' w (step w pt) n
     end.
   Definition run w fuel :=
     run' w (pin_trace_gen w) fuel.

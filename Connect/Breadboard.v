@@ -74,7 +74,7 @@ Module BB.
 
   Open Scope wiring_scope.
 
-  Definition demo1 := base */  zero_rail ~> 0
+  Definition demo1 := [] */  zero_rail ~> 0
                            //  [5] ~> integrator~> 6
                            // [2] ~> integrator~> 3
                            */ incrementor ~> 2
@@ -84,16 +84,16 @@ Module BB.
                            # 3 "Integrated incrementor".
 
   Compute (docstring demo1).
-  Definition demo2 := base */integrator ~> 9
+  Definition demo2 := [] */integrator ~> 9
                            // [6] ~> delay_n 5 0 ~> 10.
 
 
 
 
   Definition demo3 bin threshold  :=
-    base // (seq 0 32) ~> i8051_Component bin threshold dac ~> 32
+    [] // (seq 0 32) ~> i8051_Component bin threshold dac ~> 32
          ~&~
-         base */ zero_rail ~> 0
+         [] */ zero_rail ~> 0
          */ zero_rail ~> 1
          */ zero_rail ~> 2
          */ zero_rail ~> 3
