@@ -47,7 +47,7 @@ Proof.
   autowire.
 Qed.
 
-Compute (find_trace 10 (run (demo1 ~&~ demo2) 10)).
+(* Compute (find_trace 10 (run (demo1 ~&~ demo2) 10)). *)
 
 Require Import Vector.
 Import VectorNotations.
@@ -121,7 +121,7 @@ Proof.
 Qed.
 
 Check no_modify_history.
-Compute  (run demo1 1).
+(* Compute  (run demo1 1). *)
 
 Lemma alt_n_SSn : forall n, 
                     alt  n  = alt  (S (S n)) .
@@ -205,23 +205,34 @@ Proof.
   
   Qed.
 
-
-Theorem alternates':  forall n:nat, let tr := run demo1 n in
-                               let a :=find_trace 8 tr in
-                               match a with
-                                 | Some (1::rest)
-                                 | Some (0::rest) 
-                                 | Some ([] as rest) => True
-                                 | _ => False
-                               end.
+Lemma alternates'' :
+  forall l b,
+            (alternator ([List.cons b l]) = 1 ->
+             alternator [l] = 0)
+             -> alternator [l] = 0 -> alternator ([List.cons b l]) = 1.
 Proof.
+  intros. 
+  auto.
 
+  unfold alternator, hd in *.
+  rewrite  <- list_len_cons.
+  admit. (* :/ *)
+  Qed.
+
+Check find_trace.
+
+Definition altCircuit := List.nil */ alternator ~> 1 */ zero_rail ~> 0.
+Theorem alternates:  forall n, option_map hd (find_trace 1 (run altCircuit (S n))) =
+                               option_map hd (option_map tl (find_trace 1 (run altCircuit (S(S n))))).
+  Proof.
+  intros.
+  unfold altCircuit.
+  unfold run.
+  unfold step.
+  unfold option_map.
+  simpl.
+  unfold 
   compute.
-
-  admit.
-Qed.                                          
-Theorem alternates:  forall n, let tr := find_trace 8 (run demo1 n) in
-                               let tr' := find_trace 8 (run demo1 (S n)) in
                                match tr, tr' with
                                  | Some [], Some [1] 
                                  | Some ( 0::_), Some (1::_)
@@ -301,7 +312,7 @@ Definition func_same (i i':IO.func) := forall (tr:IO.trace),
                                                 length tr = n ->
                                                 f tr = f' tr /\ n = n'
                                              end.
-Compute (length [1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1]).
+(* Compute (length [1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1]). *)
 
 Theorem simulates :  func_same (i8051_Component [2;0;0] threshold dac) (IO.fn_args (8*4) (fun _ => 0)).
 Proof.

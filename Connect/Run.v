@@ -39,7 +39,6 @@ Module IORUN.
 
 
   Definition pin_trace_gen w : list (nat* list IO.t):= map (fun p => (p, nil)) (pins w).
-  Search option.
   Require Import Vector.
   Import VectorNotations.
   Fixpoint find_trace {c n:nat}  p pt  : option (Vector.t IO.t c) :=
@@ -111,10 +110,10 @@ Module IORUN.
         match find_traces from pt with
           | None => None
           | Some traces =>
-           Some (to, fn (map to_list traces))
+           Some (to, fn  c traces)
         end
       |  just_set  fn to =>
-         Some (to, fn [to_list (any_trace pt)])
+         Some (to, fn c [ (any_trace pt)])
       | doc _ _ => None
     end.
   Fixpoint remove_none {T: Type} (l:list (option T)) :=

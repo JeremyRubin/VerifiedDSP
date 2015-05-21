@@ -31,11 +31,14 @@ Module IO.
   Definition t :=  nat.
   Definition trace := forall n, Vector.t t n.
   Definition traces :=  fun n => Vector.t (Vector.t t n) .
-  Definition func : nat->Type := fun n => (Vector.t (list IO.t ) n  -> t).
+  Definition func :=fun  n => (forall c,  (Vector.t (Vector.t IO.t c ) n  -> t)).
   Check func.
   (* Definition nargs (f:forall n, IO.func n) := match f with *)
   (*                                                 | IO.func n=> n *)
   (*                                                 end. *)
                           End IO.
-Definition f  : (IO.func 10) := fun x =>(10).
+
+Check (IO.func 10).
+Definition f   : (IO.func 10  ) := fun c => fun x =>(10).
+
 Definition NilTrace : IO.trace := Vector.const 0.

@@ -63,37 +63,43 @@ Module BB.
   (* Module Alternator := Component(IO)(Alternator_Spec). *)
 
 
-  Definition integrator  : IO.func 1 :=  (fun x =>suml (Vector.hd x)).
-  Definition incrementor :IO.func 1 := (fun x =>len (Vector.hd x)).
-  Definition alternator : IO.func 1:= (fun x => alt (length (Vector.hd x))).
-  Definition zero_rail   : IO.func 1 :=(fun _ =>0).
+  Definition integrator  : IO.func 1 :=  fun c => (fun x =>suml (Vector.hd x)).
+  Definition incrementor :IO.func 1 := fun c => (fun x =>len (Vector.hd x)).
+  Definition alternator : IO.func 1:= fun c => (fun x => alt (len (Vector.hd x))).
+  Definition zero_rail   : IO.func 1 :=(fun _ _ =>0).
 
-  Definition delay_n n default : IO.func 1:= (fun x => nth n (Vector.hd x) default).
+  Require Import Vector.
+  Import VectorNotations.
+  (* TODO: Nice delay_n? *)
+  Definition delay_5 default : IO.func 1:=
+    (fun c x =>
+       match x with
+         | [a::b::c::d::e::[]] => a
+         | _ => default
+       end
+    ).
 
 
   Open Scope wiring_scope.
-  Require Import Vector.
-  Import VectorNotations.
-  Open Scope vector_scope.
 
   Definition demo1 := List.nil */  zero_rail ~> 0
                            //  [5] ~> integrator~> 6
                            // [2] ~> integrator~> 3
                            */ incrementor ~> 2
-                           */  (fun _=> 10) ~> 5
+                           */  (fun _ _=> 10) ~> 5
                            */ alternator ~> 8
                            # 3 "Integrated incrementor"
                            # 3 "Integrated incrementor".
 
-  Compute (docstring demo1).
+  (* Compute (docstring demo1). *)
   Definition demo2 := List.nil */integrator ~> 9
-                           // [6] ~> delay_n 5 0 ~> 10.
+                           // [6] ~> delay_5  0 ~> 10.
 
 
 
 
   Definition demo3 bin threshold  :=
-    List.nil // Vector.of_list(seq 0 32) ~> i8051_Component bin threshold dac ~> 32
+    List.nil // Vector.of_list(seq 0 32) ~> i8051_Component bin threshold dac ~> 32 
          ~&~
          List.nil */ zero_rail ~> 0
          */ zero_rail ~> 1
@@ -130,7 +136,7 @@ Module BB.
 
   Definition run := run.
 
-  Compute (run demo1 100).
+  (* Compute (run demo1 100). *)
   Lemma valid_demo3: valid_wiring (demo3 [0] 6).
     admit. (* THis works just slowly *)
     (* autowire. *)
