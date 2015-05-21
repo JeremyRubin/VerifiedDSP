@@ -188,17 +188,19 @@ auto.
     apply alt_n_Sn.
     apply H.
     Qed.
+  Print alternator.
 
+  Check alternator.
 Lemma alternates' :
-  forall l b,
-            alternator ([List.cons b l]) = 1 ->
-    alternator [l] = 0.
+  forall {c} (l:Vector.t IO.t c) b,
+            @alternator (S c)  ([b::l]) = 1 ->
+    @alternator c [l] = 0.
 Proof.
   intros. 
   auto.
 
   unfold alternator, hd in *.
-  rewrite  <- list_len_cons in H.
+  unfold Common.len in *.
   apply l4.
   
   apply H.
@@ -206,18 +208,43 @@ Proof.
   Qed.
 
 Lemma alternates'' :
-  forall l b,
-            (alternator ([List.cons b l]) = 1 ->
-             alternator [l] = 0)
-             -> alternator [l] = 0 -> alternator ([List.cons b l]) = 1.
+  forall {c} (l:Vector.t IO.t c) b,
+    @alternator c [l] = 0 ->
+            @alternator (S c)  ([b::l]) = 1.
 Proof.
   intros. 
-  auto.
 
   unfold alternator, hd in *.
-  rewrite  <- list_len_cons.
-  admit. (* :/ *)
+  unfold Common.len in *.
+  apply l2.
+  
+  rewrite <- alt_n_SSn.
+  apply H.
   Qed.
+
+Lemma alternator_alternates :
+  forall {c} (l:Vector.t IO.t c) b,
+    @alternator c [l] = 0 <->
+            @alternator (S c)  ([b::l]) = 1.
+Proof.
+  intros.
+  split.
+  apply alternates''.
+  apply alternates'.
+  Qed.
+(* Lemma alternates'' : *)
+(*   forall l b, *)
+(*             (alternator ([List.cons b l]) = 1 -> *)
+(*              alternator [l] = 0) *)
+(*              -> alternator [l] = 0 -> alternator ([List.cons b l]) = 1. *)
+(* Proof. *)
+(*   intros.  *)
+(*   auto. *)
+
+(*   unfold alternator, hd in *. *)
+(*   rewrite  <- list_len_cons. *)
+(*   admit. (* :/ *) *)
+(*   Qed. *)
 
 Check find_trace.
 

@@ -26,7 +26,7 @@ Require Import Arith.
 Require Import Vector.
 Import Vector.
 Import VectorNotations.
-Fixpoint len {n} {T:Type}(x : Vector.t T n) : nat := n.
+Definition len {n} {T:Type}(x : Vector.t T n) : nat := n.
 Fixpoint suml {n} (x : Vector.t nat n) : nat :=
   match x with
     | x::b => x+suml b

@@ -63,9 +63,9 @@ Module BB.
   (* Module Alternator := Component(IO)(Alternator_Spec). *)
 
 
-  Definition integrator  : IO.func 1 :=  fun c => (fun x =>suml (Vector.hd x)).
-  Definition incrementor :IO.func 1 := fun c => (fun x =>len (Vector.hd x)).
-  Definition alternator : IO.func 1:= fun c => (fun x => alt (len (Vector.hd x))).
+  Definition integrator  : IO.func 1 :=  (fun {c} x =>suml (Vector.hd x)).
+  Definition incrementor :IO.func 1 := (fun {c} x =>len (Vector.hd x)).
+  Definition alternator : IO.func 1:= (fun {c} x => alt (len (Vector.hd x))).
   Definition zero_rail   : IO.func 1 :=(fun _ _ =>0).
 
   Require Import Vector.
