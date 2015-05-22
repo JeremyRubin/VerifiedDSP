@@ -41,25 +41,16 @@ Module IORUN.
   Import Wires.
 
 
-  Fixpoint find_trace {c n:nat}  (p:pin) pt  : option (IO.trace c) :=
-    match p, pt with
-        | O, a::b => a
-        | S n, a::b => find_trace n b
-        | _, _ => None
+  Definition find_trace {c n :nat}  (p:pin) (pt: pintrace n c )  : option (IO.trace c) :=
+    match lt_dec p n with
+      | left pf => nth pt (Fin.of_nat_lt  pf)
+      | right r=> None
     end.
-    (* @nth _ n pt p. *)
+  
+  
   Definition find_traces {c n pn:nat} (p :Vector.t _ pn) (pt :pintrace n c)
   : Vector.t (option (IO.trace c)) pn:=
     Vector.map (fun f =>  (find_trace f pt))  p.
-    (* let none_missing := forallb (fun x => match x with | None => false | _ => true end ) (Vector.to_list elts) in *)
-    (* if none_missing then  *)
-    (*   Some (Vector.map *)
-    (*           (fun f : option (Vector.t IO.t c) => *)
-    (*              match f with *)
-    (*                | None => Vector.const 0 c *)
-    (*                | Some x => x *)
-    (*              end) elts) *)
-    (* else None. *)
 
   Fixpoint any_trace {c n:nat}  (pt : pintrace n c ): IO.trace c:=
     match pt with 
@@ -67,40 +58,13 @@ Module IORUN.
       | None::rest => any_trace rest
       | Some  t::rest => t
     end.
-  (* Fixpoint update_trace' {c n d:nat} (pt:Vector.t (nat * Vector.t IO.t c) n) *)
-  (*          (u:Vector.t (nat * IO.t) d)  *)
-  (*          (acc : list (nat * Vector.t IO.t (S c))  ): *)
-  (*           list (nat * Vector.t IO.t (S c))  := *)
-  (*   match u with *)
-  (*     | (p, iot)::rest => *)
-  (*       match find_trace p pt with *)
-  (*         | None => update_trace' pt rest  acc *)
-  (*         | Some tr => *)
-  (*        update_trace' pt rest ((p, iot::tr)::acc) *)
-  (*       end *)
-  (*     | [] =>  acc *)
-  (*   end. *)
-  (* Definition update_trace'' {c n d: nat} (pt:Vector.t (nat * Vector.t IO.t c) n) *)
-  (*            (u: (nat * IO.t))  *)
-  (*          (acc : Vector.t  (nat * Vector.t IO.t (S c)) d ): *)
-  (*          Vector.t  (nat * Vector.t IO.t (S c)) (S d) := *)
-  (*     let (p,v) :=  u in  *)
-  (*       match find_trace p pt with *)
-  (*         | None => (p, Vector.const 0 (S c))::acc *)
-  (*         | Some tr => *)
-  (*        ((p, v::tr)::acc) *)
-  (*       end. *)
-  Fixpoint find_update {n:nat}  p (u: pinupdate n)  : option (IO.t) :=
-    match p, u with
-        | O, a::b => a
-        | S n, a::b => find_update n b
-        | _, _ => None
+  Definition find_update {n:nat}  (p:pin) (u: pinupdate n)  : option (IO.t) :=
+    match lt_dec p n with
+      | left pf => nth u (Fin.of_nat_lt  pf)
+      | right r=> None
     end.
-    (* @nth _ n u p. *)
-    (* match u with  *)
-    (*   | [] => None *)
-    (*   | Some v::rest => if beq_nat p' p then Some t else find_update  p rest  *)
-    (* end. *)
+
+
   Definition defhd {A n} (d: A) (v:Vector.t A n):=
     match v with
       | v'::_ => v'
