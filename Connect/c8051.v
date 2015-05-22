@@ -25,6 +25,7 @@ Require Import String.
 Require Import Run.
 Require Import IOModule.
 Import IO.
+Require Import Wiring.
 Import Wires.
 Open Scope wiring_scope.
 Add LoadPath "../Model".

@@ -32,6 +32,7 @@ Require Import Common.
 Require Import IOModule.
 Require Import Run.
 Import IORUN.
+Require Import Wiring.
 Import Wires.
 Require Import c8051.
 Import i8051_Component.
@@ -136,7 +137,7 @@ Module BB.
 
   Definition run {l} := @run l.
 
-  Compute (pin_trace_gen demo1).
+  Compute (@pin_trace_gen _ (canonicalize_wiring demo1)).
 
   (* Compute (run demo1 100). *)
   Lemma valid_demo3: valid_wiring (demo3 [0] 6).

@@ -29,6 +29,7 @@ Require Import Arith.
 Open Scope list_scope.
 Open Scope string_scope.
 Require Import Run.
+Require Import Wiring.
 Import Wires.
 Require Import Breadboard.
 Import BB.

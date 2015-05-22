@@ -35,7 +35,7 @@ Import VectorNotations.
 
 Require Import Wiring.
 
-Module Wires := Wiring.Wiring.
+Import Wires.
 
 Module IORUN.
   Import Wires.
@@ -154,14 +154,6 @@ Module IORUN.
          Some (fn c [ (any_trace pt)])
       | doc _ _ => None
     end.
-  Fixpoint remove_none {c} {T: Type} (l:Vector.t (option T) c) :=
-    match l with
-        | [] => List.nil
-        | l'::l'' => match l' with
-                       | Some v => List.cons v (remove_none  l'')
-                       | None => remove_none  l''
-                     end
-    end.
   
   Fixpoint vseq (from to:nat) :=
     match to with
@@ -182,32 +174,33 @@ Fixpoint findf {n} w p : option (component) := match w with
                           end
                         | [] => None
                       end.
-  Definition step {c n l} {w: wiring l} (pt :pintrace n c) :=
-    let pindex := vseq 0 n in 
-    let fns := map (findf w) pindex in
+  Definition canonical_wiring := fun n => Vector.t (option component ) n.
+  Definition step {c n} {fns: canonical_wiring n} (pt :pintrace n c) :=
     let res := Vector.map (fun f => match f with Some c => next_value pt c | None => None end)  fns in
   update_trace pt res.
 
-  Check step.
-  (* Definition run' {n l} (w:wiring l) (pt: Vector.t (nat * Vector.t IO.t 0) n) : *)
-  (*   Vector.t (nat * Vector.t IO.t 2) n := *)
-  (*   step w (step w pt). *)
 
-  Definition pin_trace_gen  {c} (w:Wires.wiring (S c)) :
-    Vector.t (option (IO.trace 0)) (    (
-                                          S (Vector.fold_left max  0 (pins w))
-
-                                         ))
+  Definition pin_trace_gen   {n} {fns: canonical_wiring n} :
+    Vector.t (option (IO.trace 0)) n
     :=
+    Vector.map (fun p => match p with | None => None | _ =>Some [] end ) fns.
+
+  Require Import Common.
+  Definition canonicalize_wiring {n} (w:wiring (S n)) :
+    canonical_wiring (fold_left max 0 (pins w)) :=
     let p := (pins w) in
     let m := Vector.fold_left max 0 p in
-    let z := vseq 0 (S m) in
-    Vector.map (fun p => match findf w p with | None => None | _ =>Some [] end ) z.
+    let pindex := vseq 0 m in 
+     map (findf w) pindex.
 
-  Fixpoint run {l} (w:wiring (S l)) (fuel:nat):=
+  Fixpoint run' {n} (fns: canonical_wiring n) fuel :=
     match fuel with
-        | O =>  (pin_trace_gen   w)
-        | S n => @step _ _ (S l) w (run w n)
+        | S f => @step _ n fns (run' fns f)
+        | O =>  @pin_trace_gen n fns
     end.
   
+  Definition run {n} (w:wiring (S n)) fuel :=
+    let fns := canonicalize_wiring w in
+    run' fns fuel.
+
 End IORUN.

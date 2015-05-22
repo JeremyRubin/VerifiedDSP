@@ -32,3 +32,12 @@ Fixpoint suml {n} (x : Vector.t nat n) : nat :=
     | x::b => x+suml b
     | nil => 0
   end.
+
+  Fixpoint remove_none {c} {T: Type} (l:Vector.t (option T) c) :=
+    match l with
+        | [] => List.nil
+        | l'::l'' => match l' with
+                       | Some v => List.cons v (remove_none  l'')
+                       | None => remove_none  l''
+                     end
+    end.

@@ -32,7 +32,7 @@ Require Import IOModule.
 
 Require Import Vector.
 Import Vector.
-Module Wiring.
+Module Wires.
   Definition pin := nat.
   Definition pintrace := fun n c => Vector.t (option (IO.trace c)) n.
   Definition pinupdate := fun n => Vector.t (option IO.t) n.
@@ -178,4 +178,4 @@ Module Wiring.
     auto; admit.
 
   Qed.
-End Wiring.
+End Wires.
