@@ -20,27 +20,21 @@
  **)
 
 Add LoadPath "../Model".
-Require Import String.
-Require Import Ascii.
-Require Import List.
-Require Import ListSet.
 Require Import EqNat.
 Require Import Arith.
-Open Scope list_scope.
-Require Import IOModule.
-Require Import Common.
 
 Require Import Vector.
 Import Vector.
 Import VectorNotations.
 
 
+Require Import IOModule.
+Require Import Common.
 Require Import Wiring.
-
 Import Wires.
 
+
 Module IORUN.
-  Import Wires.
 
   Definition opt_trace c := option (IO.trace c).
 
@@ -52,8 +46,9 @@ Module IORUN.
   
   
   Definition find_traces {c n pn:nat}
-             (pt :pintrace n c) (p :Vector.t _ pn): pintrace pn c:=
+             (pt :pintrace n c) (p :Vector.t pin  pn): pintrace pn c:=
     Vector.map (find_trace pt)  p.
+
 
   Definition any_trace {c n:nat}  (pt : pintrace n c ): IO.trace c:=
     Vector.const 0 c.
@@ -132,12 +127,21 @@ Module IORUN.
       end.
     Definition canonical_wiring := fun n => Vector.t (option component ) n.
 
-    Definition canonicalize_wiring {n} (w:wiring (S n)) :
-      canonical_wiring (S (fold_left max 0 (pins w))) :=
+    
+    Definition canonicalize_wiring {n} (w:wiring  n) :=
       let p := (pins w) in
       let m := Vector.fold_left max 0 p in
       let pindex := vseq 0 (S m) in 
-      map (findf w) pindex.
+      match  n as n' return (match n' with
+                               | O=> canonical_wiring 0
+                               | _ => canonical_wiring (S(fold_left max 0 (pins w)))
+                             end)
+      with
+        | S n =>
+          map (findf w) pindex
+        | 0 =>
+          [] 
+      end.
   End Canon.
   Definition step {c n} {fns: canonical_wiring n} (pt :pintrace n c) :=
     let res := Vector.map (fun f => match f with Some c => next_value pt c | None => None end)  fns in
@@ -161,11 +165,7 @@ Module IORUN.
 
 End IORUN.
 
-Require Import Breadboard.
-Import IORUN.
-Definition altCircuit {l} (w:wiring l) := w */ alternator ~> 0.
-Definition t := (canonicalize_wiring (altCircuit [])).
-Compute t.
-Check (@pin_trace_gen).
 
-Compute   (@pin_trace_gen _ t).
+Import IORUN.
+Compute (canonicalize_wiring []).
+Compute (canonicalize_wiring ([]*/ (fun _ _ => 10) ~> 10)).
