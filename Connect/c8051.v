@@ -80,17 +80,28 @@ Module i8051_Component.
                   | (Vector.cons  (Vector.cons r _ l) 0 Vector.nil) as V  => tighter V threshold
                   | _ => 0
                 end).
-  Fixpoint digitize l acc :=
-    match l with
-      | (a, b) :: r => digitize r (acc // a ~> digitizer  ~> b # b ("Digitized Port"))
-      | [] => acc
-    end.
+  Require Import Vector.
+  Import Vector.
+  Import VectorNotations.
+  Definition nilwiring : Wires.wiring 0:= [].
+  Definition digitize'  (from to: Wires.pin): Wires.wiring (2) :=
+    nilwiring // [from] ~> digitizer ~> to # to ("Digitized Pin").
+
+  (* Check @fold_left. *)
+  (* Fixpoint digitize {c : nat}  (from to:Vector.t (Wires.pin)c) : *)
+  (*   let d := map2 digitize' from to in *)
+  (*   @fold_left _ _ append [] d. *)
+  (*   Wires.wiring (l+c+c) := fold_left2 digitize' from to. *)
+    (* match v in Vector.t _ s return match s with |O => True |S n => Wires.wiring (l+s+s) end with *)
+    (*   | [] => I *)
+    (*   | (from, to) :: r => digitize (digitize' w to from) r *)
+    (* end. *)
 
   (* Definition mk8051 (code:string) (pinmap:list (nat * nat)) := *)
 
   
-
-  Definition run_8051 { c} init (ps:Vector.t ports c) := Run8051.dump_state  {|
+  Definition porttrace c := Vector.t ports c.
+  Definition run_8051 { c} init (ps:porttrace c) := Run8051.dump_state  {|
                                                     rtl_oracle :=  {|
                                                                    oracle_bits := Word.repr ; 
                                                                    oracle_offset := 0
@@ -107,7 +118,7 @@ Module i8051_Component.
   (*                              | None => nil *)
   (*                            end) init in *)
   (*  run8051 cycle  (load_code_bytes loads). *)
-  Definition run_8051_bin_string {c} bin (ps:Vector.t ports c) := 
+  Definition run_8051_bin_string {c} bin (ps:porttrace c) := 
     run_8051 (load_code_bytes_bin bin 0) ps.
   Definition condense (b7 b6 b5 b4 b3 b2 b1 b0: bool) :=
     let i7 : int8 := Word.bool_to_int b7 in
@@ -118,16 +129,11 @@ Module i8051_Component.
     let i2 : int8 := Word.bool_to_int b2 in
     let i1 : int8 := Word.bool_to_int b1 in
     let i0 : int8 := Word.bool_to_int b0 in
-    fold_left (fun s f => Word.or (Word.shl s (Word.repr 1))  f) [i7;i6;i5;i4;i3;i2;i1;i0] Word.zero.
+    fold_left (fun s f => Word.or (Word.shl s (Word.repr 1))  f) Word.zero [i7;i6;i5;i4;i3;i2;i1;i0].
 
   Require Import Vector.
   Import VectorNotations.
   Import Vector.
-  Definition map {A} {B} (f : A -> B) : forall {n} (v:t A n), t B n :=
-    fix map_fix {n} (v : t A n) : t B n := match v with
-                                             | [] => []
-                                             | a :: v' => (f a) :: (map_fix v')
-                                           end.
 
   (* Definition map {A} {B} (f : A->A->A->A->A->A->A->A -> B) : *)
   (*   forall {n} (l7 l6 l5 l4 l3 l2 l1 l0: t A n), t B n := *)
@@ -151,7 +157,6 @@ Module i8051_Component.
       (* | a::b::c::[] => I *)
       (* | a::b::[] => I *)
       (* | a::[] => I *)
-  Check ([1]).
   Definition get8th {A} (v:Vector.t A 8) : A:=
     hd (tl (tl (tl (tl (tl (tl (tl v))))))).
   Definition get7th {A} (v:Vector.t A 8) : A:=
@@ -238,11 +243,9 @@ Module i8051_Component.
     let m' := Vector.map2 (fun p2 m' => {| P0 := P0 m'; P1 := P1 m'; P2:=p2;P3:= Word.zero |}) p2 m in
     Vector.map2 (fun p3 m'' => {| P0 := P0 m''; P1 := P1 m''; P2:=P2 m'';P3:= p3 |}) p3 m'.
 
-  Definition traces {c} (tr:Vector.t (Vector.t IO.t c) 32) thresh :=
+  Definition traces {c} (tr:IO.traces 32 c) thresh :=
     let f := Vector.map (Vector.map (fun x => NPeano.ltb x thresh)) in
     let digitized := ( f tr) in
-    
-
     match digitized with
         |(p00::p01::p02::p03::p04::p05::p06::p07::
            p10::p11::p12::p13::p14::p15::p16::p17::
@@ -261,10 +264,10 @@ Module i8051_Component.
     
 
     
-  Definition i8051_Component bin threshold (conv: option ports -> nat):=
-    fun c:nat => (fun t:Vector.t (Vector.t IO.t c) 32 =>
-                     let ps := traces t threshold in
-                     conv (run_8051_bin_string bin ps)).
+  Definition i8051_Component bin threshold (conv: option ports -> nat):
+    IO.func 32 := fun {c} (t:IO.traces 32 c) =>
+                    let ps := traces t threshold in
+                    conv (run_8051_bin_string bin ps).
   
   Require Import Ascii.
   Definition conv_char (c:ascii) : int8 := Word.repr (Z_of_nat (nat_of_ascii c)).

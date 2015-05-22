@@ -29,9 +29,9 @@ End IO_SIG.
 
 Module IO.
   Definition t :=  nat.
-  Definition trace := forall n, Vector.t t n.
-  Definition traces :=  fun n => Vector.t (Vector.t t n) .
-  Definition func :=fun  n => (forall c,  (Vector.t (Vector.t IO.t c ) n  -> t)).
+  Definition trace := fun c => Vector.t t c.
+  Definition traces :=  fun n c => Vector.t (trace c) n .
+  Definition func :=fun  n => (forall c,  (Vector.t (IO.trace c ) n  -> t)).
   Check func.
   (* Definition nargs (f:forall n, IO.func n) := match f with *)
   (*                                                 | IO.func n=> n *)
@@ -41,4 +41,4 @@ Module IO.
 Check (IO.func 10).
 Definition f   : (IO.func 10  ) := fun c => fun x =>(10).
 
-Definition NilTrace : IO.trace := Vector.const 0.
+(* Definition NilTrace : IO.trace 0 := Vector.nil. *)

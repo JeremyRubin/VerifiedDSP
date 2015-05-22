@@ -90,37 +90,47 @@ Check update_trace.
 (* Qed. *)
 
 Check run.
-Lemma nil_run:
+(* Lemma nil_run: *)
   
-  forall x, run List.nil x =[].
-  Proof.
+(*   forall x, fold_left (fun p x=>andb p match x with None => true |_=>false end ) true (run [doc 0 "af"] x) = true. *)
+(*   Proof. *)
               
-  intros. induction x.
-  compute; auto.
-  unfold run.
-  fold run.
-  rewrite IHx.
-  auto.
-  Qed.
-Theorem no_modify_history:
-  forall n w t,  valid_wiring w ->
-    find_trace t (run  w n) = option_map (tl) (find_trace t (run w (S n))).
-Proof.
-  intros.
-  induction w.
-  auto. 
+(*   intros. induction x. *)
+(*   compute; auto. *)
+(*   unfold run. *)
+(*   fold @run. *)
+(*   unfold step. *)
+(*   unfold pins. *)
+(*   unfold all_pins. *)
+(*   unfold of_list. *)
+(*   unfold fold_left. *)
+(*   unfold findf. *)
+(*   simpl.   *)
+(*   unfold map.  *)
+(*   simpl. *)
+(*   unfold update_trace. *)
+(*   (* rewrite IHx. *) *)
+(*   (* auto. *) *)
+(*   admit. *)
+(*   Qed. *)
+(* Theorem no_modify_history: *)
+(*   forall c n (w:wiring (S c)) t,  valid_wiring w -> *)
+(*     find_trace t (run  w n) = option_map (tl) (find_trace t (run w (S n))). *)
+(* Proof. *)
+(*   intros. *)
+(*   induction w. *)
+(*   auto.  *)
 
-  unfold find_trace.
-  rewrite nil_run.
-  rewrite nil_run.
-  auto.
-  induction n .
+(*   unfold find_trace. *)
+(*   rewrite nil_run. *)
+(*   rewrite nil_run. *)
+(*   auto. *)
+(*   induction n . *)
 
-  admit.  admit.
+(*   admit.  admit. *)
 
-Qed.
+(* Qed. *)
 
-Check no_modify_history.
 (* Compute  (run demo1 1). *)
 
 Lemma alt_n_SSn : forall n, 
@@ -232,27 +242,88 @@ Proof.
   apply alternates''.
   apply alternates'.
   Qed.
-(* Lemma alternates'' : *)
-(*   forall l b, *)
-(*             (alternator ([List.cons b l]) = 1 -> *)
-(*              alternator [l] = 0) *)
-(*              -> alternator [l] = 0 -> alternator ([List.cons b l]) = 1. *)
-(* Proof. *)
-(*   intros.  *)
-(*   auto. *)
-
-(*   unfold alternator, hd in *. *)
-(*   rewrite  <- list_len_cons. *)
-(*   admit. (* :/ *) *)
-(*   Qed. *)
 
 Check find_trace.
 
-Definition altCircuit := List.nil */ alternator ~> 1 */ zero_rail ~> 0.
+Definition altCircuit {l} (w:wiring l) := w */ alternator ~> 1.
+Compute (run (altCircuit []) 10).
+Compute (find_trace 1 (run (altCircuit []) 0)).
+
+
+Check update_trace.
+Print pintrace.
+Definition pop_update {n c} (pt:pintrace n (S c)) : pintrace n c  :=
+  map (fun f:(option (IO.trace (S c))) =>   option_map tl f) pt.
+
+Lemma map_cons: forall (A B: Type) (a:A) c (b:Vector.t A c) (f: A-> B) f, Vector.map f (a::b) = (f a) :: (@Vector.map A B   f c b).
+    intros.
+    auto.
+Qed.
+Theorem map2nil0 : forall  {A B C} (a:t A 0) (f:C->A->B), map2 f [] a = [].
+Proof.
+  intros.
+  remember (map2 f [] a).
+  admit.
+  Qed.
+
+Theorem map2nil1 : forall  {A B C} (a:t C 0) (f:C->A->B), map2 f a [] = [].
+Proof.
+
+  admit.
+Qed.
+
+Theorem map2nil2 : forall  {A B C} (a:t C 0) (b: t A 0) (f:C->A->B), map2 f a b = [].
+Proof.
+
+  admit.
+Qed.
+Theorem safe_update : forall {n c} (pt: pintrace n c) (u:pinupdate n), pop_update (update_trace pt u) = pt.
+  (* intros. *)
+  (* unfold pintrace, pinupdate, trace in *. *)
+  (* generalize dependent n. *)
+  (* + intros. *)
+  (*   induction c. *)
+  (* - unfold update_trace. *)
+  (*   induction n. *)
+  (*   * apply case0. *)
+  (*     rewrite map2nil2. *)
+      
+  (*     auto. *)
+  (*   * *)
+  (*     destruct pt. *)
+  (*      rewrite map2nil2. *)
+  (*     auto. *)
+  (*     unfold pop_update. *)
+     
+  (*    apply IHn. *)
+  (*    unfold update_trace. *)
+
+  (* +intros. *)
+  intros .
+  admit.
+Qed.
+Theorem present' : forall {l} (w:wiring l)  n, find_trace 1 (run (altCircuit w) n) <> None ->
+                               find_trace 1 (@step _ _ _  (altCircuit w) (run (altCircuit w) n))<> None.
+Proof.
+  intros.
+
+  unfold step.
+  admit.
+  Qed.
+Theorem present : forall  n, find_trace 1 (run (altCircuit []) n) <> None.
+  induction n.
+  compute.
+  intro H. inversion H.
+  unfold run.
+  fold @run.
+  apply present'.
+  auto.
+  Qed.
 Theorem alternates:  forall n, option_map hd (find_trace 1 (run altCircuit (S n))) =
                                option_map hd (option_map tl (find_trace 1 (run altCircuit (S(S n))))).
   Proof.
   intros.
+  compute.
   unfold altCircuit.
   unfold run.
   unfold step.

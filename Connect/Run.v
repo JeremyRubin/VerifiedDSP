@@ -24,10 +24,13 @@ Require Import Ascii.
 Require Import List.
 Require Import ListSet.
 Require Import EqNat.
-Import ListNotations.
 Require Import Arith.
 Open Scope list_scope.
 Require Import IOModule.
+
+Require Import Vector.
+Import Vector.
+Import VectorNotations.
 
 
 Require Import Wiring.
@@ -38,32 +41,31 @@ Module IORUN.
   Import Wires.
 
 
-  Definition pin_trace_gen w : list (nat* list IO.t):= map (fun p => (p, nil)) (pins w).
-  Require Import Vector.
-  Import VectorNotations.
-  Fixpoint find_trace {c n:nat}  p pt  : option (Vector.t IO.t c) :=
-    match pt with 
-      | [] => None
-      | (p', t)::rest => if beq_nat p' p then Some t else find_trace  p rest 
+  Fixpoint find_trace {c n:nat}  (p:pin) pt  : option (IO.trace c) :=
+    match p, pt with
+        | O, a::b => a
+        | S n, a::b => find_trace n b
+        | _, _ => None
     end.
-  Definition find_traces {c n pn:nat} (p :Vector.t nat pn)
-             (pt :Vector.t (nat * Vector.t IO.t c) n)
-  : option (Vector.t (Vector.t IO.t c) pn) :=
-    let elts :=Vector.map (fun f =>  (find_trace f pt))  p in
-    let none_missing := forallb (fun x => match x with | None => false | _ => true end ) (Vector.to_list elts) in
-    if none_missing then 
-      Some (Vector.map
-              (fun f : option (Vector.t IO.t c) =>
-                 match f with
-                   | None => Vector.const 0 c
-                   | Some x => x
-                 end) elts)
-    else None.
+    (* @nth _ n pt p. *)
+  Definition find_traces {c n pn:nat} (p :Vector.t _ pn) (pt :pintrace n c)
+  : Vector.t (option (IO.trace c)) pn:=
+    Vector.map (fun f =>  (find_trace f pt))  p.
+    (* let none_missing := forallb (fun x => match x with | None => false | _ => true end ) (Vector.to_list elts) in *)
+    (* if none_missing then  *)
+    (*   Some (Vector.map *)
+    (*           (fun f : option (Vector.t IO.t c) => *)
+    (*              match f with *)
+    (*                | None => Vector.const 0 c *)
+    (*                | Some x => x *)
+    (*              end) elts) *)
+    (* else None. *)
 
-  Definition any_trace {c n:nat}  (pt :Vector.t (nat * Vector.t IO.t c) n ): Vector.t IO.t c:=
+  Fixpoint any_trace {c n:nat}  (pt : pintrace n c ): IO.trace c:=
     match pt with 
       | [] => Vector.const 0 c
-      | (p', t)::rest => t
+      | None::rest => any_trace rest
+      | Some  t::rest => t
     end.
   (* Fixpoint update_trace' {c n d:nat} (pt:Vector.t (nat * Vector.t IO.t c) n) *)
   (*          (u:Vector.t (nat * IO.t) d)  *)
@@ -88,59 +90,124 @@ Module IORUN.
   (*         | Some tr => *)
   (*        ((p, v::tr)::acc) *)
   (*       end. *)
-  Fixpoint find_update {n:nat}  p (u: Vector.t (nat * IO.t) n)  : option (IO.t) :=
-    match u with 
-      | [] => None
-      | (p', t)::rest => if beq_nat p' p then Some t else find_update  p rest 
+  Fixpoint find_update {n:nat}  p (u: pinupdate n)  : option (IO.t) :=
+    match p, u with
+        | O, a::b => a
+        | S n, a::b => find_update n b
+        | _, _ => None
     end.
-  Definition update_trace {c n  n_u: nat} (pt:Vector.t (nat * Vector.t IO.t c) n)
-             (u: Vector.t (nat * IO.t) n_u) :
-             Vector.t  (nat * Vector.t IO.t (S c)) n :=
-
-    map (fun pv:(nat * Vector.t IO.t c) => let (p, v) := pv in
-                   match find_update p u with
-                       | Some update => (p, update::v)
-                       | None => (p, 0::v)
-                   end) pt.
+    (* @nth _ n u p. *)
+    (* match u with  *)
+    (*   | [] => None *)
+    (*   | Some v::rest => if beq_nat p' p then Some t else find_update  p rest  *)
+    (* end. *)
+  Definition defhd {A n} (d: A) (v:Vector.t A n):=
+    match v with
+      | v'::_ => v'
+      | [] => d
+    end.
+    Check (andb).
+    Check @fold_left.
+  Definition sequenceOpt {T c} (m: Vector.t (option T) c) def :=
+    let allg := fold_left (fun p v => andb p match v with Some _ => true | None => false end) true m in
+    if  allg then
+      Some (map (fun f =>
+                   match f  with
+                     | Some t => t
+                     | None => def
+                end) m) 
+      else None.
+      
+    (* fix seqOpt {n m} (mv: Vector.t (option T) (S m)) : Vector.t T (n) := *)
+    (* match mv with *)
+    (*   | None ::_ => None *)
+    (*   | Some x::r::s => @seqOpt _ _ (x::acc) (r::s) *)
+    (*   | [Some x] => Some (acc) *)
+    (*   | [] => Some acc *)
+    (* end. *)
+  Definition update_trace {c n : nat}
+             (pt:pintrace n c)
+             (u: pinupdate n) :
+    pintrace n (S c) :=
+    map2 (fun (pv:(option (IO.trace c))) up =>
+           match pv , up with
+               | Some t, Some update=> Some ( update ::t)
+               | Some t, None => Some ((defhd 0 t)::t)
+               | None, _ => None 
+           end
+             )pt u.
 
   Require Import Vector.
-  Fixpoint next_value {c n} (pt: Vector.t (nat * Vector.t IO.t c) n)  w  :=
+  Check (Fin.of_nat 10 1).
+  Check find_traces.
+  Check (IO.trace).
+  Fixpoint next_value {c n} (pt: pintrace n c)  w  :=
+    
     match w with 
       | watch_set n from fn to =>
-        match find_traces from pt with
+        match sequenceOpt (find_traces from pt) (Vector.const 0 c) with
           | None => None
           | Some traces =>
-           Some (to, fn  c traces)
+           Some (fn  c traces)
         end
       |  just_set  fn to =>
-         Some (to, fn c [ (any_trace pt)])
+         Some (fn c [ (any_trace pt)])
       | doc _ _ => None
     end.
-  Fixpoint remove_none {T: Type} (l:list (option T)) :=
+  Fixpoint remove_none {c} {T: Type} (l:Vector.t (option T) c) :=
     match l with
-        | List.nil => List.nil
-        | List.cons l' l'' => match l' with
+        | [] => List.nil
+        | l'::l'' => match l' with
                        | Some v => List.cons v (remove_none  l'')
                        | None => remove_none  l''
                      end
     end.
-  Check next_value.
-  Definition step {c n} w (pt : Vector.t (nat * Vector.t IO.t c) n) :=
-    let v := (remove_none (List.map (next_value pt ) w)) in
-  update_trace pt (of_list v).
+  
+  Fixpoint vseq (from to:nat) :=
+    match to with
+      | O => []
+      | S n => ( from) ::vseq (S from) n
+    end.
+  Compute (vseq 0 1).
+Fixpoint findf {n} w p : option (component) := match w with
+                        | a :: r =>
+                          match a with
+                            | just_set _ to as c
+                            | watch_set _ _ _ to as c=>
+                                                if beq_nat to p then
+                                                  Some c
+                                                else
+                                                  findf r p
+                            | doc _ _ => findf r p
+                          end
+                        | [] => None
+                      end.
+  Definition step {c n l} {w: wiring l} (pt :pintrace n c) :=
+    let pindex := vseq 0 n in 
+    let fns := map (findf w) pindex in
+    let res := Vector.map (fun f => match f with Some c => next_value pt c | None => None end)  fns in
+  update_trace pt res.
 
   Check step.
-  Definition run' {n } (w:wiring) (pt: Vector.t (nat * Vector.t IO.t 0) n) :
-    Vector.t (nat * Vector.t IO.t 2) n :=
-    step w (step w pt).
+  (* Definition run' {n l} (w:wiring l) (pt: Vector.t (nat * Vector.t IO.t 0) n) : *)
+  (*   Vector.t (nat * Vector.t IO.t 2) n := *)
+  (*   step w (step w pt). *)
 
-  Definition pin_trace_gen' {n: nat} (w: Vector.t nat n) : Vector.t (nat * Vector.t nat 0) n:=
-    Vector.map (fun p:nat => (p, Vector.nil nat)) w.
+  Definition pin_trace_gen  {c} (w:Wires.wiring (S c)) :
+    Vector.t (option (IO.trace 0)) (    (
+                                          S (Vector.fold_left max  0 (pins w))
 
-  Fixpoint run w (fuel:nat):=
+                                         ))
+    :=
+    let p := (pins w) in
+    let m := Vector.fold_left max 0 p in
+    let z := vseq 0 (S m) in
+    Vector.map (fun p => match findf w p with | None => None | _ =>Some [] end ) z.
+
+  Fixpoint run {l} (w:wiring (S l)) (fuel:nat):=
     match fuel with
-        | O =>  (pin_trace_gen' (of_list (pins  w)))
-        | S n => step w (run w n)
+        | O =>  (pin_trace_gen   w)
+        | S n => @step _ _ (S l) w (run w n)
     end.
   
 End IORUN.
