@@ -89,47 +89,32 @@ Check update_trace.
 (*   admit. *)
 (* Qed. *)
 
-Check run.
-(* Lemma nil_run: *)
+Definition nil_wire : wiring 0 := [].
+Lemma nil_run:
+  forall x,
+    Forall (fun f => f = None) (run nil_wire x) .
+Proof.
   
-(*   forall x, fold_left (fun p x=>andb p match x with None => true |_=>false end ) true (run [doc 0 "af"] x) = true. *)
-(*   Proof. *)
-              
-(*   intros. induction x. *)
-(*   compute; auto. *)
-(*   unfold run. *)
-(*   fold @run. *)
-(*   unfold step. *)
-(*   unfold pins. *)
-(*   unfold all_pins. *)
-(*   unfold of_list. *)
-(*   unfold fold_left. *)
-(*   unfold findf. *)
-(*   simpl.   *)
-(*   unfold map.  *)
-(*   simpl. *)
-(*   unfold update_trace. *)
-(*   (* rewrite IHx. *) *)
-(*   (* auto. *) *)
-(*   admit. *)
-(*   Qed. *)
-(* Theorem no_modify_history: *)
-(*   forall c n (w:wiring (S c)) t,  valid_wiring w -> *)
-(*     find_trace t (run  w n) = option_map (tl) (find_trace t (run w (S n))). *)
-(* Proof. *)
-(*   intros. *)
-(*   induction w. *)
-(*   auto.  *)
+  intros.
+  apply Forall_nil.
+Qed.
+Theorem no_modify_history:
+  forall c n (w:wiring (S c)) t,  valid_wiring w ->
+   Forall2 (fun f1 f2 => f1 = f2) (@run  (S c) w n)  (option_map (tl) (run w (S n))).
+Proof.
+  intros.
+  induction w.
+  auto.
 
-(*   unfold find_trace. *)
-(*   rewrite nil_run. *)
-(*   rewrite nil_run. *)
-(*   auto. *)
-(*   induction n . *)
+  unfold find_trace.
+  rewrite nil_run.
+  rewrite nil_run.
+  auto.
+  induction n .
 
-(*   admit.  admit. *)
+  admit.  admit.
 
-(* Qed. *)
+Qed.
 
 (* Compute  (run demo1 1). *)
 
@@ -245,10 +230,8 @@ Proof.
 
 Check find_trace.
 
-Definition altCircuit {l} (w:wiring l) := w */ alternator ~> 1.
+Definition altCircuit {l} (w:wiring l) := canonicalize_wiring (w */ alternator ~> 1).
 
-Compute (run (altCircuit []) 10).
-Compute (find_trace (run (altCircuit []) 1) 1).
 
 
 Check update_trace.
@@ -303,13 +286,31 @@ Theorem safe_update : forall {n c} (pt: pintrace n c) (u:pinupdate n), pop_updat
   intros .
   admit.
 Qed.
-Theorem present' : forall {l} (w:wiring l)  n, find_trace 1 (run (altCircuit w) n) <> None ->
-                               find_trace 1 (@step _ _ _  (altCircuit w) (run (altCircuit w) n))<> None.
+Check @step.
+Theorem present' : forall  n,
+                     let cw := altCircuit [] in
+                     find_trace  (run' (cw) n) 1 <> None ->
+                               find_trace (@step _ _   (cw) (run' (cw) n)) 1<> None.
 Proof.
   intros.
-
+  
+  unfold cw,altCircuit,canonicalize_wiring in *;
+  unfold find_trace in *.
+  simpl in *.
   unfold step.
-  admit.
+  simpl.
+  unfold any_trace.
+  remember (alternator n [const 0 n]).
+
+
+  unfold run'.
+
+  induction n.
+  compute.
+  intro H1; inversion H1.
+  compute.
+  unfold update_trace.
+
   Qed.
 Theorem present : forall  n, find_trace 1 (run (altCircuit []) n) <> None.
   induction n.

@@ -43,37 +43,50 @@ Fixpoint suml {n} (x : Vector.t nat n) : nat :=
     end.
 
   Lemma seq_dec : forall {A n} (m : t (option A) n),  {Forall (fun f =>  f <> None) m}  +  {Exists (fun f => f = None) m}.
-    
-Proof.
-  intros.
-  induction m.
-  constructor.
-  constructor.
-  elim (IHm).
-  destruct  h.
-  intros.
-  left.
-  apply Forall_cons with (x:=Some a).
-  unfold not.
-  intros. inversion H.
-  apply a0.
-
-  intros.
-  right.
-  apply Exists_cons_hd .
-  reflexivity.
-
-
-  intros.
-  destruct  h.
-  intros.
-  right.
-  apply Exists_cons_tl with (x:=Some a).
-  apply b.
-
-  right.
   
-  apply Exists_cons_hd .
-  reflexivity.
-
+  Proof.
+    intros.
+    induction m.
+    +
+      constructor.
+      constructor.
+    +
+      elim (IHm).
+    -
+      destruct  h.
+      *
+        intros.
+        left.
+        apply Forall_cons with (x:=Some a).
+        {
+          unfold not.
+          intros.
+          inversion H.
+        }
+        {
+          apply a0.
+        }
+      *
+        intros.
+         right.
+         apply Exists_cons_hd.
+         reflexivity.
+    -
+      intros.
+      destruct  h.
+      *
+        intros.
+        right.
+        apply Exists_cons_tl with (x:=Some a).
+        apply b.
+      *
+        right.
+        apply Exists_cons_hd .
+        reflexivity.
   Defined.
+
+  Fixpoint vseq (from to:nat) :=
+    match to with
+      | O => []
+      | S n => ( from) ::vseq (S from) n
+    end.

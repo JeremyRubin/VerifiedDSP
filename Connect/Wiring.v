@@ -29,6 +29,7 @@ Import VectorNotations.
 Open Scope vector_scope.
 
 Require Import IOModule.
+Require Import Common.
 
 Require Import Vector.
 Import Vector.
@@ -107,36 +108,113 @@ Module Wires.
     end.
   Definition pins {c} (w:wiring c)  := of_list (all_pins w List.nil).
   (* Checks that all observers have a source and that only one setter per nat *)
-  Fixpoint valid_wiring' {c} (w:wiring c) ins outs: Prop :=
-    let add_i := set_add%nat nat eq_nat_dec in
-    let notin := (fun el  s => (not (set_In%nat nat  el s))) in
-    let union := set_union%nat nat eq_nat_dec in
-    let intersect := set_inter%nat nat eq_nat_dec in
-    match w with
-      | [] =>
-        (* Check that the intersection of inputs and outputs is inputs,
-         ie, everything can be read *)
-        (intersect ins outs) = ins
-      | w::w' =>
-    match w with 
-      | watch_set n from fn to =>
-        notin to outs /\
-        (* IO.nargs fn = length from /\ *)
-        valid_wiring' w'
-                      ( fold_left  (fun s f => add_i f s) ins from) (add_i to outs)
-      | just_set  fn to=>
-        notin to outs
-        /\ valid_wiring' w' ins (add_i to outs)
-      | doc  _ _ =>  valid_wiring' w'  ins outs
-                                   end
+
+  Definition writes c :=
+    match c with
+      | just_set _ _ => True
+      | watch_set _ _ _ _ => True
+      | _ => False
     end.
-  Definition valid_wiring {c} (w: wiring c) : Prop :=
-    valid_wiring' w List.nil List.nil.
+
+  Definition w_writes_to_p {n} (w:wiring n) p :=
+    Exists (fun c =>
+    match c with
+      | just_set _ to 
+      | watch_set _ _ _ to => to = p
+      | _ => False
+    end) w.
+  Fixpoint pins_readable {c} (w:wiring c) : Prop :=
+    Forall (fun f => match f with
+                       | watch_set _ from _ to => Forall (w_writes_to_p w) from
+                       | just_set _ to => w_writes_to_p w to
+                       | _ => True
+                     end) w.
+
+  (* Inductive Unique {A} (P:A->Prop): forall {n}, t A n -> Prop := *)
+  (* | Unique_hd_sat {m} x (v: t A m): P x -> Unique P (x::v) *)
+  (* | Unique_hd_unsat {m} x (v: t A m): ~ P x -> Unique P (x::v)  *)
+  (* | Unique_cons_sat {m} x (v: t A m): Unique P v -> ~ P x -> Unique P (x::v) *)
+  (* | Unique_cons_unsat {m} x (v: t A m): Unique P v  ->  P x -> Unique P (x::v) . *)
+
+  (* Inductive Unique {A} (P: A -> Prop): forall {n} (v: t A n), bool -> Prop := *)
+  (*   | Unique_cons_unsat {n} x (v: t A n): ~ P x -> Unique P v false -> Unique P (x::v) false *)
+  (*   | Unique_cons_sat {n} x (v: t A n): P x -> Unique P v false -> Unique P (x::v) true. *)
+  Fixpoint Count {A n}  (P:A->bool)   (v: Vector.t A n) :=
+    fold_left (fun s a => if P a then S (s) else s) 0 v.
+  Hint Unfold Count.
+  (* Theorem testunique : Count (beq_nat 0)  ((vseq 0 10)) = 1. *)
+  (* Proof. *)
+    
+  (*   compute. *)
+  (*    reflexivity. *)
+  (* Qed. *)
+  (* Theorem testunique2 : Count (beq_nat 1)  (1::(vseq 0 10)) = 1-> False. *)
+  (* Proof. *)
+    
+  (*   compute. *)
+  (*   intros. *)
+  (*   inversion H. *)
+  (* Qed. *)
+
+  (* Definition Unique {A n} P (v: t A n):= Count P v = 1. *)
+  (* Require Import Omega. *)
+
+  (* Theorem Unique_dec : forall {A n} P (v:t A n), {Unique P v} + {~ Unique P v}. *)
+  (*   intros. *)
+  (*   induction v. *)
+  (*   unfold Unique. *)
+  (*   right. *)
+  (*   simpl. *)
+  (*   omega. *)
+
+  (*   unfold Unique. *)
+  (*   unfold Count. *)
+    
+  (*   unfold fold_left. *)
+  (*   destruct P. *)
+  (*   Qed. *)
+  (* Theorem testunique2 :  ~ Unique (fun f => f = 0) (10::(vseq 0 11)) True . *)
+  (* Proof. *)
+  (*   unfold not. *)
+  (*   intros. *)
+  (*   simpl in H. *)
+  (*   inversion H. *)
+  (*   rewrite H3. *)
+  (*   auto. *)
+  (*   inversion H4. *)
+  (*   unfold not in H4. *)
+
+
+
+  (*   Qed. *)
+
+  (* Theorem testunique : Unique (fun f => f = 0) ((vseq 0 10)) True . *)
+  (* Proof. *)
+   
+  (*   compute. *)
+  (*   intros. *)
+  (*   repeat (constructor; auto). *)
+  (*   Qed. *)
+  Definition opt_output_pins {n} (w:wiring n) :=
+    map (fun f => match f with
+                       | watch_set _ _ _ to
+                       | just_set _ to => Some to
+                       | _ => None
+                     end) w.
+  Fixpoint pins_no_overlap {c} (w:wiring c) : Prop :=
+    let p :=  (opt_output_pins w) in
+    Forall (fun f => match f with
+                       | watch_set _ _ _ to
+                       | just_set _ to =>
+                         1 = Count (fun f => match f with Some v => beq_nat to v | _ => false end) p
+                       | _ => True
+                     end) w.
+  Definition valid_wiring {n} (w:wiring n) :=
+    pins_readable w /\ pins_no_overlap w. 
 
   Require Import Omega.
   Ltac autowire :=
     unfold valid_wiring;
-    unfold valid_wiring';
     simpl;
     repeat (try split; try omega).
 

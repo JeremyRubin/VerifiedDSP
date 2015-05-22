@@ -129,18 +129,14 @@ Module IORUN.
 
     
     Definition canonicalize_wiring {n} (w:wiring  n) :=
-      let p := (pins w) in
-      let m := Vector.fold_left max 0 p in
-      let pindex := vseq 0 (S m) in 
+      let d := S (Vector.fold_left max 0 (pins w)) in 
       match  n as n' return (match n' with
                                | O=> canonical_wiring 0
-                               | _ => canonical_wiring (S(fold_left max 0 (pins w)))
+                               | _ => canonical_wiring d
                              end)
       with
-        | S n =>
-          map (findf w) pindex
-        | 0 =>
-          [] 
+        | S n => map (findf w) (vseq 0 d)
+        | 0 => [] 
       end.
   End Canon.
   Definition step {c n} {fns: canonical_wiring n} (pt :pintrace n c) :=
@@ -159,13 +155,20 @@ Module IORUN.
       | O =>  @pin_trace_gen n fns
     end.
   
+  (*CR Nickolai : Can I make this function work (and not be annoying!) with the commented out bits? *)
   Definition run {n} (w:wiring (S n)) fuel :=
-    let fns := canonicalize_wiring w in
-    run' fns fuel.
+    (* match w as w return (match w with *)
+    (*                        | [] => pintrace 0 fuel *)
+    (*                        |  (v::v') as w' => pintrace _ fuel *)
+    (*                      end) *)
+    (* with *)
+    (*   | [] => [] *)
+    (*   | (v::v') as w' => *)
+        let fns := canonicalize_wiring w in
+        run' fns fuel.
+    (* end. *)
 
 End IORUN.
 
 
 Import IORUN.
-Compute (canonicalize_wiring []).
-Compute (canonicalize_wiring ([]*/ (fun _ _ => 10) ~> 10)).
