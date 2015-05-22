@@ -27,6 +27,7 @@ Require Import EqNat.
 Require Import Arith.
 Open Scope list_scope.
 Require Import IOModule.
+Require Import Common.
 
 Require Import Vector.
 Import Vector.
@@ -52,12 +53,9 @@ Module IORUN.
   : Vector.t (option (IO.trace c)) pn:=
     Vector.map (fun f =>  (find_trace f pt))  p.
 
-  Fixpoint any_trace {c n:nat}  (pt : pintrace n c ): IO.trace c:=
-    match pt with 
-      | [] => Vector.const 0 c
-      | None::rest => any_trace rest
-      | Some  t::rest => t
-    end.
+  Definition any_trace {c n:nat}  (pt : pintrace n c ): IO.trace c:=
+    Vector.const 0 c.
+
   Definition find_update {n:nat}  (p:pin) (u: pinupdate n)  : option (IO.t) :=
     match lt_dec p n with
       | left pf => nth u (Fin.of_nat_lt  pf)
@@ -70,25 +68,21 @@ Module IORUN.
       | v'::_ => v'
       | [] => d
     end.
-    Check (andb).
-    Check @fold_left.
-  Definition sequenceOpt {T c} (m: Vector.t (option T) c) def :=
-    let allg := fold_left (fun p v => andb p match v with Some _ => true | None => false end) true m in
-    if  allg then
-      Some (map (fun f =>
-                   match f  with
-                     | Some t => t
-                     | None => def
-                end) m) 
-      else None.
+
+    
+  (*CR Nickolai: How can I Eliminate the default parameter given that it is
+   never used *)
+  Definition sequenceOpt {T c} (m: Vector.t (option T) c) default :=
+    match  seq_dec m with
+        | left pf =>
+          Some (map (fun f =>
+                       match f  with
+                         | None => default
+                         | Some t => t
+                       end) m) 
+        | right pf => None
+        end.
       
-    (* fix seqOpt {n m} (mv: Vector.t (option T) (S m)) : Vector.t T (n) := *)
-    (* match mv with *)
-    (*   | None ::_ => None *)
-    (*   | Some x::r::s => @seqOpt _ _ (x::acc) (r::s) *)
-    (*   | [Some x] => Some (acc) *)
-    (*   | [] => Some acc *)
-    (* end. *)
   Definition update_trace {c n : nat}
              (pt:pintrace n c)
              (u: pinupdate n) :
@@ -101,11 +95,7 @@ Module IORUN.
            end
              )pt u.
 
-  Require Import Vector.
-  Check (Fin.of_nat 10 1).
-  Check find_traces.
-  Check (IO.trace).
-  Fixpoint next_value {c n} (pt: pintrace n c)  w  :=
+  Definition next_value {c n} (pt: pintrace n c)  w  :=
     
     match w with 
       | watch_set n from fn to =>
@@ -124,20 +114,20 @@ Module IORUN.
       | O => []
       | S n => ( from) ::vseq (S from) n
     end.
-  Compute (vseq 0 1).
-Fixpoint findf {n} w p : option (component) := match w with
-                        | a :: r =>
-                          match a with
-                            | just_set _ to as c
-                            | watch_set _ _ _ to as c=>
-                                                if beq_nat to p then
-                                                  Some c
-                                                else
-                                                  findf r p
-                            | doc _ _ => findf r p
-                          end
-                        | [] => None
-                      end.
+  Fixpoint findf {n} w p : option (component) :=
+    match w with
+      | a :: r =>
+        match a with
+          | just_set _ to as c
+          | watch_set _ _ _ to as c=>
+            if beq_nat to p then
+              Some c
+            else
+              findf r p
+          | doc _ _ => findf r p
+        end
+      | [] => None
+    end.
   Definition canonical_wiring := fun n => Vector.t (option component ) n.
   Definition step {c n} {fns: canonical_wiring n} (pt :pintrace n c) :=
     let res := Vector.map (fun f => match f with Some c => next_value pt c | None => None end)  fns in
