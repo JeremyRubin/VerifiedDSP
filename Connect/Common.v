@@ -60,7 +60,7 @@ Fixpoint suml {n} (x : Vector.t nat n) : nat :=
         apply Forall_cons with (x:=Some a).
         {
           unfold not.
-          intros.
+          intro H.
           inversion H.
         }
         {

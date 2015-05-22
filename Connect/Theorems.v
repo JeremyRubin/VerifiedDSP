@@ -21,12 +21,8 @@
 Add LoadPath "../Model".
 Require Import String.
 Require Import Ascii.
-Require Import List.
-Require Import ListSet.
 Require Import EqNat.
-Import ListNotations.
 Require Import Arith.
-Open Scope list_scope.
 Open Scope string_scope.
 Require Import Run.
 Require Import Wiring.
@@ -37,84 +33,57 @@ Require Import IOModule.
 Require Import c8051.
 Import i8051_Component.
 Import IO.
-Theorem good_build : valid_wiring (demo1 ~&~ demo2).
-Proof. 
-  autowire.
-Qed.
-
-Theorem bad_build : valid_wiring (demo1 ~&~ demo1) -> False.
-Proof. 
-  autowire.
-Qed.
-
-(* Compute (find_trace 10 (run (demo1 ~&~ demo2) 10)). *)
 
 Require Import Vector.
 Import VectorNotations.
 Import Vector.
 Open Local Scope vector_scope.
 Check update_trace.
-(* Theorem no_modify_history_update: *)
-(*   forall  c m  (pin_tr: t (nat * t IO.t c) m) (upd: t (nat *  IO.t) m) n, *)
+(* Demonstrate proving a build correct *)
 
-(*     let a   := (find_trace n (update_trace  pin_tr upd)) in *)
-(*     let b := find_trace n pin_tr in *)
-(*     match (a, b) with *)
-(*       | (Some (a'::rest), Some rest') => *)
-(*         length (to_list rest) = length (to_list rest') *)
-(*       | _ => True *)
-(*     end. *)
-(*   intros. *)
-(*   unfold a, b. *)
+Theorem good_build : valid_wiring (demo1 ~&~ demo2).
+Proof.
+  autowire.
+Qed.
   
-(*   intros. *)
-(*   unfold a, b.  *)
-(*   auto. *)
-(*   generalize dependent pin_tr. *)
-(*   induction upd. *)
-(*   intros. *)
-(*   induction pin_tr. *)
-(*   simpl. *)
-(*   auto. *)
-(*   simpl. *)
-(*   auto. *)
-(*   intros. *)
 
-(*   remember (find_trace n pin_tr). *)
-(*   destruct o; auto. *)
-(*   auto. *)
-
-(*   admit. *)
-(*   admit. *)
-(*   admit. *)
+(* (* Demonstrate proving a build incorrect, double buld always bad if wiring writes anything *) *)
+(* Theorem bad_build : valid_wiring (demo1 ~&~ demo1) -> False. *)
+(* Proof.  *)
+(*   autowire. *)
 (* Qed. *)
 
-Definition nil_wire : wiring 0 := [].
-Lemma nil_run:
-  forall x,
-    Forall (fun f => f = None) (run nil_wire x) .
-Proof.
+(* Theorem join_self_if_writes__always_bad : forall {s} (w: wiring (S s)), Exists writes w -> ~ (valid_wiring (w ~&~ w)). *)
+(* Proof. *)
+(*   intros. *)
+(*   unfold valid_wiring. *)
+(*   unfold valid_wiring'. *)
   
-  intros.
-  apply Forall_nil.
-Qed.
-Theorem no_modify_history:
-  forall c n (w:wiring (S c)) t,  valid_wiring w ->
-   Forall2 (fun f1 f2 => f1 = f2) (@run  (S c) w n)  (option_map (tl) (run w (S n))).
-Proof.
-  intros.
-  induction w.
-  auto.
+(* CR Nickolai: cannot type check because (~ exists n, 0 = S n) for run function *)
+(* Definition nil_wire : wiring 0 := []. *)
+(* Lemma nil_run: *)
+(*   forall x, *)
+(*     Forall (fun f => f = None) (run nil_wire x) . *)
+(* Proof. *)
+  
+(*   intros. *)
+(*   apply Forall_nil. *)
+(* Qed. *)
 
-  unfold find_trace.
-  rewrite nil_run.
-  rewrite nil_run.
-  auto.
-  induction n .
+(* Theorem no_modify_history: *)
+(*   forall c n (w:wiring (S c)) ,  valid_wiring w ->  *)
+(*    Forall2 (fun f1 f2 => f1 = f2) (run   w n)  (map (option_map tl) (run w (S n))). *)
+(* Proof. *)
+(*   intros. *)
 
-  admit.  admit.
+(*   induction n. *)
 
-Qed.
+(*   unfold run at 1. *)
+
+(*   unfold run, run', pin_trace_gen. *)
+(*   unfold step. *)
+
+(* Qed. *)
 
 (* Compute  (run demo1 1). *)
 

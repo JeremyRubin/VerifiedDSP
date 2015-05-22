@@ -77,6 +77,7 @@ Module breadboard.
                            # 3 "Integrated incrementor"
                            # 3 "Integrated incrementor".
 
+  Compute (run demo1 10).
   Definition demo2 := [] */integrator ~> 9
                            // [6] ~> delay_5  0 ~> 10.
 

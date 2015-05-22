@@ -80,6 +80,7 @@ Module IORUN.
       | right pf => None
     end.
   
+  Compute (sequenceOpt [Some 1; None] 3).
   Definition update_trace {c n : nat}
              (pt:pintrace n c)
              (u: pinupdate n) :
@@ -105,11 +106,6 @@ Module IORUN.
       | doc _ _ => None
     end.
   
-  Fixpoint vseq (from to:nat) :=
-    match to with
-      | O => []
-      | S n => ( from) ::vseq (S from) n
-    end.
   Section Canon.
     Fixpoint findf {n} w p : option (component) :=
       match w with

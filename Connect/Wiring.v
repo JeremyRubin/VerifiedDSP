@@ -213,10 +213,15 @@ Module Wires.
     pins_readable w /\ pins_no_overlap w. 
 
   Require Import Omega.
-  Ltac autowire :=
-    unfold valid_wiring;
-    simpl;
-    repeat (try split; try omega).
+
+Ltac solve_pins_readable :=
+  repeat (constructor; auto; repeat (apply Exists_cons_tl;  
+try (apply  Exists_cons_hd; reflexivity))).
+
+Ltac solve_pins_no_overlap :=
+  repeat (constructor; auto; repeat (apply Exists_cons_tl;  
+try (apply  Exists_cons_hd; reflexivity))).
+Ltac autowire := unfold valid_wiring; split; try (solve_pins_readable); try (solve_pins_no_overlap).
 
   (* Rewire w1 so it won't interfere with w2 *)
   Definition wire_add_offset n w1: component :=
@@ -247,7 +252,6 @@ Module Wires.
 
     remember (wire_add_offset ((fold_left max 0 (pins w') )+1)) as f.
     unfold valid_wiring.
-    unfold valid_wiring'.
     remember (f h).
     case c;
     unfold append;
