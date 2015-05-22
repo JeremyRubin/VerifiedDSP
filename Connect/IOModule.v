@@ -31,7 +31,7 @@ Module IO.
   Definition t :=  nat.
   Definition trace := fun c => Vector.t t c.
   Definition traces :=  fun n c => Vector.t (trace c) n .
-  Definition func :=fun  n => (forall c,  (Vector.t (IO.trace c ) n  -> t)).
+  Definition func :=fun  n => (forall {c},  (Vector.t (IO.trace c ) n  -> t)).
   Check func.
   (* Definition nargs (f:forall n, IO.func n) := match f with *)
   (*                                                 | IO.func n=> n *)

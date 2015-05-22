@@ -37,31 +37,16 @@ Import Wires.
 Require Import c8051.
 Import i8051_Component.
 
-Module BB.
-  (* Module Integrator_Spec. *)
-  (*   Definition io (x:list IO.t):IO.t := suml x. *)
-  (* End Integrator_Spec. *)
-  (* Module Incrementor_Spec. *)
-  (*   Definition io (x:list IO.t):IO.t := len x. *)
-  (* End Incrementor_Spec. *)
-
-
+Module breadboard.
   Fixpoint alt_ x:=
     match x with
       | S O => false
       | O => true
       | S (S n) => alt_ n 
     end.
+
   Definition alt x:= if alt_ x then 1 else 0.
   
-  (* Module Alternator_Spec. *)
-  (*   Require Import Arith.Even. *)
-  (*   Definition io (x:list IO.t):IO.t := alt (length x) 1. *)
-  (* End Alternator_Spec. *)
-
-  (* Module Integrator := Component(IO)(Integrator_Spec). *)
-  (* Module Incrementor := Component(IO)(Incrementor_Spec). *)
-  (* Module Alternator := Component(IO)(Alternator_Spec). *)
 
 
   Definition integrator  : IO.func 1 :=  (fun {c} x =>suml (Vector.hd x)).
@@ -92,7 +77,6 @@ Module BB.
                            # 3 "Integrated incrementor"
                            # 3 "Integrated incrementor".
 
-  (* Compute (docstring demo1). *)
   Definition demo2 := [] */integrator ~> 9
                            // [6] ~> delay_5  0 ~> 10.
 
@@ -100,7 +84,7 @@ Module BB.
 
 
   Definition demo3 bin threshold  :=
-    [] // Vector.of_list(seq 0 32) ~> i8051_Component bin threshold dac ~> 32 
+    [] // vseq 0 32 ~> i8051_Component bin threshold dac ~> 32 
          ~&~
          [] */ zero_rail ~> 0
          */ zero_rail ~> 1
@@ -137,12 +121,11 @@ Module BB.
 
   Definition run {l} := @run l.
 
-  Compute (@pin_trace_gen _ (canonicalize_wiring demo1)).
 
-  (* Compute (run demo1 100). *)
   Lemma valid_demo3: valid_wiring (demo3 [0] 6).
     admit. (* THis works just slowly *)
     (* autowire. *)
-
   Qed.
-End BB.
+End breadboard.
+
+Export breadboard.

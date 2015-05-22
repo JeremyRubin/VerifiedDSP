@@ -32,7 +32,6 @@ Require Import Run.
 Require Import Wiring.
 Import Wires.
 Require Import Breadboard.
-Import BB.
 Import IORUN.
 Require Import IOModule.
 Require Import c8051.
@@ -247,8 +246,9 @@ Proof.
 Check find_trace.
 
 Definition altCircuit {l} (w:wiring l) := w */ alternator ~> 1.
+
 Compute (run (altCircuit []) 10).
-Compute (find_trace 1 (run (altCircuit []) 0)).
+Compute (find_trace (run (altCircuit []) 1) 1).
 
 
 Check update_trace.
