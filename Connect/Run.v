@@ -67,16 +67,67 @@ Module IORUN.
     end.
 
   
+  Require Import NPeano.
+  Require Import Arith.
+  Definition elim_0 {T c} (m: Vector.t T (c+0)) : Vector.t T (c).
+    rewrite plus_comm in m.
+    simpl in m.
+    apply m.
+    Defined.
+    
+  Definition elim_opt {T} (o:option T) (pf: o <> None) : T.
+    destruct o.
+    exact t.
+    unfold not in pf.
+    contradiction pf.
+    reflexivity.
+    Defined.
+  Definition conv_proof {T n} (m: Vector.t (option T) n)  (pf: Forall (fun f =>  f <> None) m) (o : option T) (pf2 : In o m) : T.
+    destruct o.
+    exact t.
+    admit. (* Should be easy? *)
+
+    Qed.
   (*CR Nickolai: How can I Eliminate the default parameter given that it is
    never used *)
+    Theorem in_dec {n T} (T_eq_dec: forall (a b:T), {a = b} + {a<>b}) (m: Vector.t T n) (v:T) : {In v m} + {~ In v m}.
+
+
+     induction m.
+
+     right.
+     unfold not ;intros; inversion H.
+     
+     elim IHm.
+     left.
+     constructor.
+     apply a.
+     
+      assert ({v = h} + {v <> h}).
+      apply T_eq_dec.
+      elim H.
+      intros.
+      left.
+      rewrite a.
+      constructor.
+      intros.
+      right.
+      unfold not.
+      intros.
+      apply b.
+      admit. (** This one seems easy to prove but IDK *)
+      
+      Qed.
+
   Definition sequenceOpt {T c} (m: Vector.t (option T) c) default :=
     match  seq_dec m with
       | left pf =>
-        Some (map (fun f =>
-                     match f  with
+        Some (map (fun f=>
+                     match f with
                        | None => default
                        | Some t => t
-                     end) m) 
+                     end )
+                     m) 
       | right pf => None
     end.
   
