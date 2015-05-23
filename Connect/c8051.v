@@ -177,9 +177,10 @@ Module i8051_Component.
     Vector.map2 (fun p3 m'' => {| P0 := P0 m''; P1 := P1 m''; P2:=P2 m'';P3:= p3 |}) p3 m'.
 
   Check to_trace.
+  Require Import Program.Equality.
   Definition traces' {c} (tr:IO.traces 32 c) thresh
     :=
-    let f := Vector.map (Vector.map (fun x => NPeano.ltb x thresh)) in
+    let f := Vector.map (Vector.map (fun x => NPeano.ltb thresh x)) in
     let digitized := ( f tr) in
     match digitized
           as d
@@ -204,19 +205,26 @@ Module i8051_Component.
     end.
   
 
-  Require Import Program.Equality.
   Definition traces {c} (tr:IO.traces 32 c) (thresh:nat) : porttrace c.
 
     refine (_ (traces' tr thresh)).
     intros.
-    do 32 (dependent destruction tr).
-    dependent destruction tr.
+    do 33 (dependent destruction tr).
     simpl in x.
     apply x.
     Defined.
 
     
 
+  Check traces.
+
+  Example trace_ex : (traces (Vector.const [0] 32) 1) = [{|P0:=Word.zero; P1:= Word.zero; P2:= Word.zero; P3:= Word.zero|}].
+
+  vm_compute.
+  remember x.
+  auto.
+  simpl.
+  Qed.
     
   Definition i8051_Component bin threshold (conv: option ports -> nat):
     IO.func 32 := fun {c} (t:IO.traces 32 c) =>
